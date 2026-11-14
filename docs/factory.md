@@ -67,11 +67,19 @@ down, and the reviewers check against exactly these criteria.
 Start with `once.sh` (Matt: always HITL before AFK). Watch where the agent struggles, then fix the
 ticket, the prompt or a check, not the code. Move to `afk.sh` once a few iterations need no help.
 
-The AFK runner never trusts the agent's report. After each ticket it checks for itself that the
-status is `needs-review`, there are new commits, the tree is clean, a review brief exists,
-`npm run check` passes, and the guard passes on every new commit. It stops at the first problem.
-The agent runs in `dontAsk` mode: only commands pre-approved in `.claude/settings.json` run,
-guardrail edits and `git push` are denied. Logs are in `.factory-logs/` (not committed).
+The AFK runner never trusts the agent's report. Before each ticket it copies the guard and status
+scripts out of the repo, so the agent cannot change the code that judges it. Afterwards it checks,
+by itself: the status is `needs-review`; there are new commits and history was not rewritten; the
+tree is clean; no commit carries an override; the ticket's description and acceptance criteria are
+unchanged; a review brief exists; `.claude/settings.local.json` is untouched; the guard passes in
+strict mode (every commit and the whole range, no overrides); and `npm run check` passes. It stops
+at the first problem. The agent runs in `dontAsk` mode: only commands pre-approved in
+`.claude/settings.json` run; guardrail edits, `git push`, `reset`, `rebase`, `checkout` and
+`config` are denied. Logs are in `.factory-logs/` (not committed).
+
+These checks were tested against a fake agent that tampers with its acceptance criteria, skips a
+test behind `--no-verify`, forges an override trailer, and guts the guard itself: each run stopped
+with the right reason, and an honest run passed.
 
 ## 3. Brakes (automated checks)
 

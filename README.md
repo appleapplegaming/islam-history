@@ -13,3 +13,6 @@ for the rules the project follows.
 - `npm run typecheck`: TypeScript check
 - `npm run validate`: content validation, must pass before every commit
 - `npm run build`: production build into `dist/`
+- `npm run check`: typecheck + tests + validate
+- `npm run factory:status`: tickets and what is next (`-- --review` prints review briefs)
+- `factory/once.sh` / `factory/afk.sh N`: run the agent loop, see `docs/factory.md`
