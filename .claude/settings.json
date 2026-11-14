@@ -1,5 +1,50 @@
 {
   "permissions": {
+    "allow": [
+      "Bash(npm test*)",
+      "Bash(npm run typecheck*)",
+      "Bash(npm run validate*)",
+      "Bash(npm run check*)",
+      "Bash(npm run guard*)",
+      "Bash(npm run factory:status*)",
+      "Bash(npx vitest *)",
+      "Bash(npx tsc --noEmit*)",
+      "Bash(node scripts/*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git rev-parse*)",
+      "Bash(ls*)",
+      "Bash(mkdir *)"
+    ],
+    "ask": [
+      "Edit(/.githooks/**)",
+      "Edit(/.github/workflows/**)",
+      "Edit(/.claude/settings.json)",
+      "Edit(/.claude/hooks/**)",
+      "Edit(/.claude/agents/**)",
+      "Edit(/scripts/factory/**)",
+      "Edit(/scripts/validate.ts)",
+      "Edit(/CODING_STANDARDS.md)",
+      "Edit(/package.json)",
+      "Edit(/tsconfig.json)"
+    ],
     "deny": ["Edit(/data/quran/**)"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/guard-bash.ts" }]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/check-on-stop.ts", "timeout": 180 }]
+      }
+    ]
   }
 }
