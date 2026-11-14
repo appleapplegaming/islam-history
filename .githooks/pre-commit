@@ -1,0 +1,8 @@
+#!/bin/sh
+# Every commit must pass the full quality bar. Installed by `npm install` (the "prepare" script).
+# Never bypass with --no-verify; CI runs the same checks and will fail the branch anyway.
+set -e
+npm run --silent guard
+npm run --silent typecheck
+npm run --silent test -- --reporter=dot
+npm run --silent validate

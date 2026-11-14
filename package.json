@@ -9,7 +9,11 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "validate": "node scripts/validate.ts"
+    "validate": "node scripts/validate.ts",
+    "guard": "node scripts/factory/guard.ts",
+    "check": "npm run typecheck && npm test && npm run validate",
+    "factory:status": "node scripts/factory/status.ts",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "phaser": "^3.90.0"
