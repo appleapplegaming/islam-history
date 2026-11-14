@@ -2,6 +2,14 @@
 # Every commit must pass the full quality bar. Installed by `npm install` (the "prepare" script).
 # Never bypass with --no-verify; CI runs the same checks and will fail the branch anyway.
 set -e
+
+# The checks below run on the working tree, so it must equal what is being committed.
+if ! git diff --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+  echo "pre-commit: there are unstaged or untracked changes, so the checks would not test what you commit." >&2
+  echo "Stage everything that belongs in this commit (git add) and stash or remove the rest." >&2
+  exit 1
+fi
+
 npm run --silent guard
 npm run --silent typecheck
 npm run --silent test -- --reporter=dot

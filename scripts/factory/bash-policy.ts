@@ -10,7 +10,9 @@ export interface Classification {
 const stripQuoted = (command: string): string => command.replace(/"(?:\\.|[^"\\])*"|'[^']*'/g, '""');
 
 const DENY: readonly [RegExp, string][] = [
-  [/--no-verify\b/, 'Skipping git hooks is not allowed. Fix what the pre-commit hook reports.'],
+  // Git accepts any unambiguous prefix of a long option, so --no-veri is --no-verify.
+  [/--no-v[a-z]*\b/, 'Skipping git hooks is not allowed. Fix what the pre-commit hook reports.'],
+  [/\bgit\b[^;&|]*\s--output\b/, 'git --output can overwrite any file. Use a normal redirect to a scratch file instead.'],
   [/\bgit\b[^;&|]*\bcommit\b[^;&|]*\s-[a-zA-Z]*n[a-zA-Z]*\b/, '`git commit -n` skips the hooks. Fix what the pre-commit hook reports.'],
   [/core\.hooksPath/, 'Changing core.hooksPath disables the pre-commit hook.'],
   [/\bHUSKY=0\b/, 'Disabling hooks is not allowed.'],
@@ -22,7 +24,8 @@ const DENY: readonly [RegExp, string][] = [
 ];
 
 export function classifyCommand(command: string): Classification {
-  if (/Factory-Allow/i.test(command)) {
+  // Only writing a commit (message or trailer) can record an override; reading trailers is fine.
+  if (/Factory-Allow/i.test(command) && /\b(?:commit|interpret-trailers|notes)\b/.test(command)) {
     return { decision: 'ask', reason: 'A Factory-Allow trailer records a human guard override. Only a human may add it.' };
   }
   const code = stripQuoted(command);

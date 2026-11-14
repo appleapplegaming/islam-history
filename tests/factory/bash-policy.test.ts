@@ -17,6 +17,8 @@ describe('classifyCommand', () => {
     expect(decision('git -c core.hooksPath=/dev/null commit -m x')).toBe('deny');
     expect(decision('git config core.hooksPath foo')).toBe('deny');
     expect(decision('HUSKY=0 git commit -m x')).toBe('deny');
+    expect(decision('git commit --no-veri -m x')).toBe('deny');
+    expect(decision('git commit --no-v -m x')).toBe('deny');
   });
 
   it('does not mistake a message containing -n for the flag', () => {
@@ -26,6 +28,15 @@ describe('classifyCommand', () => {
   it('denies rewriting shared history', () => {
     expect(decision('git push --force origin main')).toBe('deny');
     expect(decision('git push -f')).toBe('deny');
+  });
+
+  it('denies git writing arbitrary files through --output', () => {
+    expect(decision('git diff --output=.githooks/pre-commit HEAD HEAD')).toBe('deny');
+    expect(decision('git log --output data/quran/surah-012.json')).toBe('deny');
+  });
+
+  it('does not ask when Factory-Allow is only read, not written', () => {
+    expect(decision("git log --format='%(trailers:key=Factory-Allow)'")).toBe('allow');
   });
 
   it('asks a human before a guard override', () => {

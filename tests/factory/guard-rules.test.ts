@@ -21,6 +21,13 @@ describe('parseDiff', () => {
     expect(files).toEqual([{ path: 'src/a.ts', added: ['new', '++ not a header'], removed: ['old'] }]);
   });
 
+  it('records a file whose diff has no hunks (mode change, binary)', () => {
+    const modeOnly = ['diff --git a/.githooks/pre-commit b/.githooks/pre-commit', 'old mode 100755', 'new mode 100644'].join('\n');
+    expect(parseDiff(modeOnly)).toEqual([{ path: '.githooks/pre-commit', added: [], removed: [] }]);
+    const binary = ['diff --git a/tests/a.test.ts b/tests/a.test.ts', 'Binary files a/tests/a.test.ts and b/tests/a.test.ts differ'].join('\n');
+    expect(parseDiff(binary)[0]?.path).toBe('tests/a.test.ts');
+  });
+
   it('uses the old path for a deleted file', () => {
     expect(parseDiff(diff('tests/a.test.ts', ['-x'], { deleted: true }))[0]?.path).toBe('tests/a.test.ts');
   });
@@ -35,6 +42,22 @@ describe('findGuardViolations', () => {
     expect(rules(diff('tests/a.test.ts', ["+  it.skip('x', () => {});"]))).toEqual(['skipped-test']);
     expect(rules(diff('tests/a.test.ts', ["+  it.only('x', () => {});"]))).toEqual(['skipped-test']);
     expect(rules(diff('tests/a.test.ts', ["+  xit('x', () => {});"]))).toEqual(['skipped-test']);
+  });
+
+  it('blocks conditional skips and spec files', () => {
+    expect(rules(diff('tests/a.test.ts', ['+  describe.skipIf(true)(() => {});']))).toEqual(['skipped-test']);
+    expect(rules(diff('tests/a.test.ts', ['+  it.concurrent.skip(() => {});']))).toEqual(['skipped-test']);
+    expect(rules(diff('src/a.spec.ts', ["+  it.skip('x', () => {});"]))).toEqual(['skipped-test']);
+    expect(rules(diff('src/a.test.tsx', ["+  it.only('x', () => {});"]))).toEqual(['skipped-test']);
+  });
+
+  it('blocks any in generic positions', () => {
+    expect(rules(diff('src/a.ts', ['+const m: Record<string, any> = {};']))).toEqual(['suppression']);
+    expect(rules(diff('src/a.mts', ['+let x: any[] = [];']))).toEqual(['suppression']);
+  });
+
+  it('ignores "any" inside string literals', () => {
+    expect(rules(diff('src/a.ts', ["+const hint = 'Pick: any of them';"]))).toEqual([]);
   });
 
   it('blocks type-check suppressions and any', () => {
@@ -68,6 +91,12 @@ describe('findGuardViolations', () => {
     expect(rules(diff('.claude/settings.json', ['+x']))).toEqual(['guardrails']);
     expect(rules(diff('package.json', ['+"test": "echo ok"']))).toEqual(['guardrails']);
     expect(rules(diff('tsconfig.json', ['+"strict": false']))).toEqual(['guardrails']);
+    expect(rules(diff('.gitattributes', ['+tests/** -diff']))).toEqual(['guardrails']);
+    expect(rules(diff('.gitignore', ['+.claude/']))).toEqual(['guardrails']);
+    expect(rules(diff('factory/afk.sh', ['+exit 0']))).toEqual(['guardrails']);
+    expect(rules(diff('.claude/settings.local.json', ['+{}']))).toEqual(['guardrails']);
+    expect(rules(diff('vitest.config.mjs', ['+export default {}']))).toEqual(['guardrails']);
+    expect(rules(diff('vite.config.mts', ['+export default {}']))).toEqual(['guardrails']);
   });
 
   it('lets a human override a rule by name', () => {

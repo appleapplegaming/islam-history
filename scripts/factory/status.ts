@@ -2,11 +2,14 @@
 //   npm run factory:status                 overview of every ticket
 //   npm run factory:status -- --next       print the next ticket path for the agent (exit 3 if none)
 //   npm run factory:status -- --review     print the review brief of every ticket awaiting you
+//   npm run factory:status -- --status <path>   print one ticket's status (used by factory/afk.sh)
+// Reads tickets relative to the current directory (the repo root), so factory/afk.sh can run a
+// trusted copy of this script from outside the repo.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { nextTicket, parseTicket, ticketsAwaitingReview, type Ticket } from './tickets.ts';
 
-const ROOT = join(import.meta.dirname, '..', '..');
+const ROOT = process.cwd();
 const SCRATCH = join(ROOT, '.scratch');
 const NO_TICKET_EXIT = 3;
 
@@ -35,7 +38,14 @@ const mode = process.argv[2];
 const tickets = loadTickets();
 const next = nextTicket(tickets);
 
-if (mode === '--next') {
+if (mode === '--status') {
+  const ticket = tickets.find((t) => t.path === process.argv[3]);
+  if (!ticket) {
+    console.error(`No ticket at "${process.argv[3]}".`);
+    process.exit(2);
+  }
+  console.log(ticket.status);
+} else if (mode === '--next') {
   if (!next) process.exit(NO_TICKET_EXIT);
   console.log(next.path);
 } else if (mode === '--review') {
@@ -56,6 +66,6 @@ if (mode === '--next') {
   const waiting = ticketsAwaitingReview(tickets).length;
   if (waiting > 0) console.log(`\n${waiting} ticket(s) need your review: npm run factory:status -- --review`);
 } else {
-  console.error(`Unknown option "${mode}". Use --next, --review or nothing.`);
+  console.error(`Unknown option "${mode}". Use --next, --review, --status <path> or nothing.`);
   process.exit(2);
 }
