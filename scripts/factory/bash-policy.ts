@@ -22,6 +22,9 @@ const DENY: readonly [RegExp, string][] = [
 ];
 
 export function classifyCommand(command: string): Classification {
+  if (/Factory-Allow/i.test(command)) {
+    return { decision: 'ask', reason: 'A Factory-Allow trailer records a human guard override. Only a human may add it.' };
+  }
   const code = stripQuoted(command);
   for (const [pattern, reason] of DENY) {
     if (pattern.test(code)) return { decision: 'deny', reason };

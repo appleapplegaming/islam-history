@@ -30,6 +30,8 @@ describe('classifyCommand', () => {
 
   it('asks a human before a guard override', () => {
     expect(decision('FACTORY_ALLOW=guardrails git commit -m x')).toBe('ask');
+    expect(decision('export FACTORY_ALLOW=guardrails')).toBe('ask');
+    expect(decision('git commit -m "x\n\nFactory-Allow: guardrails"')).toBe('ask');
   });
 
   it('denies writing into the generated Quran data from the shell', () => {

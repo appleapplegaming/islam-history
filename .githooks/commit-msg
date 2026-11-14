@@ -1,0 +1,11 @@
+#!/bin/sh
+# Records a human guard override in the commit itself, so CI can tell an approved change from a
+# sneaked-in one. A Factory-Allow trailer is only valid when FACTORY_ALLOW was really set.
+set -e
+msg="$1"
+if [ -n "${FACTORY_ALLOW:-}" ]; then
+  git interpret-trailers --in-place --if-exists replace --trailer "Factory-Allow: $FACTORY_ALLOW" "$msg"
+elif grep -qi '^Factory-Allow:' "$msg"; then
+  echo "commit-msg: a Factory-Allow trailer can only come from a human setting FACTORY_ALLOW." >&2
+  exit 1
+fi

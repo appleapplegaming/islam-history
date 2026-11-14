@@ -17,6 +17,7 @@ Game design, chapter plan and planned layout: `docs/design.md`. Read it before b
 - `npm run dev`: run the game locally
 - `npm test`: Vitest unit tests
 - `npm run validate`: content validation, must pass before every commit
+- `npm run check`: typecheck + tests + validate (the pre-commit hook also runs `npm run guard`)
 
 ## Religious rules
 
@@ -40,3 +41,13 @@ These have no exceptions.
 - Commit after every working step.
 - After each change, run `npm test` and `npm run validate`, and say what to test by hand.
 - Ask before adding a new dependency.
+
+## Software factory
+
+Work runs through tickets and a verified loop: see `docs/factory.md`.
+
+- Tickets: local markdown in `.scratch/<feature>/issues/`, see `docs/agents/issue-tracker.md`.
+  `npm run factory:status` shows what is next.
+- Every commit runs guard, typecheck, tests and validate. Never weaken a check or skip a hook to get
+  to green; if a check seems wrong, say so and stop.
+- Domain docs: see `docs/agents/domain.md`.

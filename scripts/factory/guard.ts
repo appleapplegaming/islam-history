@@ -1,30 +1,53 @@
 // Quality guard: blocks diffs that weaken the checks instead of fixing the code.
-//   node scripts/factory/guard.ts            check staged changes (pre-commit)
-//   node scripts/factory/guard.ts <base>     check <base>...HEAD (CI)
+//   node scripts/factory/guard.ts          check staged changes (pre-commit)
+//   node scripts/factory/guard.ts <base>   check every commit in <base>..HEAD (CI, AFK loop)
 // A human can allow one rule for one commit: FACTORY_ALLOW=guardrails git commit ...
+// The commit-msg hook records that as a "Factory-Allow:" trailer, which range mode honours.
 import { execFileSync } from 'node:child_process';
-import { findGuardViolations, parseDiff } from './guard-rules.ts';
+import { findGuardViolations, parseDiff, type GuardViolation } from './guard-rules.ts';
 
-const base = process.argv[2];
-const args = base ? ['diff', '--no-color', '-U0', `${base}...HEAD`] : ['diff', '--cached', '--no-color', '-U0'];
-
-let diff: string;
-try {
-  diff = execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-} catch (error) {
-  console.error(`guard: could not read the diff (git ${args.join(' ')}): ${(error as Error).message}`);
-  process.exit(2);
+function git(...args: string[]): string {
+  try {
+    return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  } catch (error) {
+    console.error(`guard: git ${args.join(' ')} failed: ${(error as Error).message}`);
+    process.exit(2);
+  }
 }
 
-const allowed = new Set((process.env.FACTORY_ALLOW ?? '').split(',').map((rule) => rule.trim()).filter(Boolean));
-const violations = findGuardViolations(parseDiff(diff), allowed);
+const parseAllowed = (value: string): Set<string> =>
+  new Set(value.split(/[,\n]/).map((rule) => rule.trim()).filter(Boolean));
 
-if (violations.length > 0) {
-  console.error(`Guard failed with ${violations.length} violation(s):`);
-  for (const { rule, path, detail } of violations) console.error(`  - [${rule}] ${path}: ${detail}`);
+const report: string[] = [];
+const overrides: string[] = [];
+const base = process.argv[2];
+if (base !== undefined && /^0*$/.test(base)) {
+  console.log('guard: no base commit (first push of a branch), so there is no range to check.');
+  process.exit(0);
+}
+
+const record = (where: string, violations: GuardViolation[]): void => {
+  for (const { rule, path, detail } of violations) report.push(`  - ${where}[${rule}] ${path}: ${detail}`);
+};
+
+if (base) {
+  for (const commit of git('rev-list', '--reverse', '--no-merges', `${base}..HEAD`).split('\n').filter(Boolean)) {
+    const allowed = parseAllowed(git('log', '-1', '--format=%(trailers:key=Factory-Allow,valueonly)', commit));
+    const subject = git('log', '-1', '--format=%h %s', commit).trim();
+    if (allowed.size > 0) overrides.push(`  - ${subject}  (allowed: ${[...allowed].join(', ')})`);
+    record(`${commit.slice(0, 7)} `, findGuardViolations(parseDiff(git('diff', '--no-color', '-U0', `${commit}^`, commit)), allowed));
+  }
+} else {
+  const allowed = parseAllowed(process.env.FACTORY_ALLOW ?? '');
+  if (allowed.size > 0) overrides.push(`  - staged changes (allowed: ${[...allowed].join(', ')})`);
+  record('', findGuardViolations(parseDiff(git('diff', '--cached', '--no-color', '-U0')), allowed));
+}
+
+if (overrides.length > 0) console.log(`Human overrides:\n${overrides.join('\n')}`);
+if (report.length > 0) {
+  console.error(`Guard failed with ${report.length} violation(s):\n${report.join('\n')}`);
   console.error('\nFix the code instead of weakening the checks.');
   console.error('Only a human may override, one rule per commit: FACTORY_ALLOW=<rule> git commit ...');
   process.exit(1);
 }
-if (allowed.size > 0) console.log(`Guard passed (human override: ${[...allowed].join(', ')}).`);
-else console.log('Guard passed.');
+console.log('Guard passed.');
