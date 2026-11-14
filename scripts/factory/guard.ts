@@ -30,8 +30,25 @@ const record = (where: string, violations: GuardViolation[]): void => {
   for (const { rule, path, detail } of violations) report.push(`  - ${where}[${rule}] ${path}: ${detail}`);
 };
 
+/** True when `ancestor` is in the history of `commit` (or is `commit`). */
+function isAncestor(ancestor: string, commit: string): boolean {
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', ancestor, commit]);
+    return true;
+  } catch {
+    return false; // exit 1 means "not an ancestor"; a bad ref fails earlier in rev-list
+  }
+}
+
 if (base) {
+  // Commits made before the guard existed are not judged by it. Found via history, so deleting
+  // the guard later does not exempt anything.
+  const introduced = git('log', '--diff-filter=A', '--format=%H', '--', 'scripts/factory/guard-rules.ts').trim().split('\n').pop();
   for (const commit of git('rev-list', '--reverse', '--no-merges', `${base}..HEAD`).split('\n').filter(Boolean)) {
+    if (!introduced || !isAncestor(introduced, commit)) {
+      console.log(`  - ${commit.slice(0, 7)} predates the guard; not checked`);
+      continue;
+    }
     const allowed = parseAllowed(git('log', '-1', '--format=%(trailers:key=Factory-Allow,valueonly)', commit));
     const subject = git('log', '-1', '--format=%h %s', commit).trim();
     if (allowed.size > 0) overrides.push(`  - ${subject}  (allowed: ${[...allowed].join(', ')})`);
