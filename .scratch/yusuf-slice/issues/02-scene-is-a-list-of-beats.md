@@ -9,7 +9,7 @@ chapter content can never be committed. No chapter file exists yet, so nothing e
 
 **Blocked by:** None (can start immediately)
 
-**Status:** in-progress
+**Status:** needs-info
 **Started at:** 76aea9b
 
 **Seams:** `validateChapter()`.
@@ -58,3 +58,30 @@ required scene field. It should say `beats` once this lands.
 longer guardrail files (commit 1fde0dd), so this ticket can now be built normally. You can start from
 `02-wip.patch` (apply it with `git apply`, then delete it). Question 2 is still open: `.claude/rules/content.md`
 is still a guardrail, so leave it alone and mention it in the review brief.
+
+**Agent, 2026-11-15 (second attempt): still blocked, this time by the agent permissions, not the guard.**
+
+Commit 1fde0dd took `src/content/{validate,refs,honorifics,credits}.ts` out of `GUARDRAIL_PATHS`, but
+`.claude/settings.json` still lists all four under `permissions.ask` (lines 52-55):
+
+```
+"Edit(/src/content/validate.ts)",
+"Edit(/src/content/honorifics.ts)",
+"Edit(/src/content/credits.ts)",
+"Edit(/src/content/refs.ts)",
+```
+
+The factory runs with no human to answer, so an `ask` rule means denied. My Edit to
+`src/content/validate.ts` was refused ("Permission to use Edit has been denied because Claude Code is
+running in don't ask mode"). I can't fix this myself: `.claude/**` is also on the `ask` list, and
+editing the agent's own permissions is a human call. (`git apply` of the WIP patch was also denied,
+so I applied the `types.ts` and test parts by hand, confirmed they go red as expected, then restored
+the working tree. `02-wip.patch` is untouched and still the starting point.)
+
+**Question:**
+1. Please remove those four `Edit(/src/content/...)` lines from `permissions.ask` in
+   `.claude/settings.json` (so the permissions match the guard after 1fde0dd), then set this ticket
+   back to `ready-for-agent`. If you'd rather keep `refs.ts`, `honorifics.ts` and `credits.ts` behind
+   `ask`, removing only `validate.ts` is enough for this ticket.
+2. Optional: add `Bash(git apply *)` to `permissions.allow` so the next iteration can apply
+   `02-wip.patch` directly. Without it I'll re-apply it by hand, which works fine.
