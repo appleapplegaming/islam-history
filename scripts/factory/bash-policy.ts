@@ -9,13 +9,19 @@ export interface Classification {
 // Quoted strings are removed first, so a commit message mentioning a flag is not the flag.
 const stripQuoted = (command: string): string => command.replace(/"(?:\\.|[^"\\])*"|'[^']*'/g, '""');
 
-const DENY: readonly [RegExp, string][] = [
+// Checked on the raw command: the shell removes quotes, so "--no-verify" or HUSKY="0" still work.
+// A commit message that merely mentions one of these is denied too; rephrase the message.
+const RAW_DENY: readonly [RegExp, string][] = [
   // Git accepts any unambiguous prefix of a long option, so --no-veri is --no-verify.
   [/--no-v[a-z]*\b/, 'Skipping git hooks is not allowed. Fix what the pre-commit hook reports.'],
+  [/core\.hookspath/i, 'Changing core.hooksPath disables the pre-commit hook.'],
+  [/\bHUSKY=["']?0\b/, 'Disabling hooks is not allowed.'],
+  [/\bgit\b[^;&|]*\bcommit\b[^;&|]*\s["']-[a-zA-Z]*n[a-zA-Z]*["']/, '`git commit -n` skips the hooks. Fix what the pre-commit hook reports.'],
+];
+
+const DENY: readonly [RegExp, string][] = [
   [/\bgit\b[^;&|]*\s--output\b/, 'git --output can overwrite any file. Use a normal redirect to a scratch file instead.'],
   [/\bgit\b[^;&|]*\bcommit\b[^;&|]*\s-[a-zA-Z]*n[a-zA-Z]*\b/, '`git commit -n` skips the hooks. Fix what the pre-commit hook reports.'],
-  [/core\.hooksPath/, 'Changing core.hooksPath disables the pre-commit hook.'],
-  [/\bHUSKY=0\b/, 'Disabling hooks is not allowed.'],
   [/\bgit\b[^;&|]*\bpush\b[^;&|]*(?:--force\b|--force-with-lease\b|\s-f\b)/, 'Force-pushing rewrites shared history. Ask the human.'],
   [
     /(?:>|\btee\b|\bsed\s+-i\b|\bmv\b|\bcp\b|\brm\b|\btruncate\b)[^;&|]*\bdata\/quran\//,
@@ -27,6 +33,9 @@ export function classifyCommand(command: string): Classification {
   // Only writing a commit (message or trailer) can record an override; reading trailers is fine.
   if (/Factory-Allow/i.test(command) && /\b(?:commit|interpret-trailers|notes)\b/.test(command)) {
     return { decision: 'ask', reason: 'A Factory-Allow trailer records a human guard override. Only a human may add it.' };
+  }
+  for (const [pattern, reason] of RAW_DENY) {
+    if (pattern.test(command)) return { decision: 'deny', reason };
   }
   const code = stripQuoted(command);
   for (const [pattern, reason] of DENY) {

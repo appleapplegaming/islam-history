@@ -13,3 +13,14 @@ export function formatDebugLines(info: DebugInfo): string[] {
   }
   return lines;
 }
+
+/** Where the latest debug info is published, for the browser smoke tests in e2e/. */
+export const DEBUG_PROBE_KEY = '__storyDebug';
+
+/**
+ * Publishes the current debug info on the given global object, overlay visible or not, so the
+ * browser smoke tests can check game state without reading pixels.
+ */
+export function publishDebugInfo(target: object, info: DebugInfo): void {
+  Reflect.set(target, DEBUG_PROBE_KEY, info);
+}

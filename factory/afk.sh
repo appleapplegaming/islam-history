@@ -52,7 +52,7 @@ main() {
 Ticket: $ticket" >"$log" 2>&1 || stop "claude exited with an error on $ticket (see $log)"
 
     verify "$ticket" "$before_head" "$local_settings_before" "$log"
-    echo "      done: $ticket is waiting for your review"
+    echo "      done: $ticket is waiting for your review (screenshots: $log.screens/)"
     i=$((i + 1))
   done
 
@@ -84,7 +84,15 @@ verify() {
   # so the npm run check that follows still means what it meant before the iteration.
   node "$trusted/scripts/factory/guard.ts" "$before_head" --strict >"$log.check" 2>&1 ||
     stop "guard fails on $ticket's commits (see $log.check)"
-  npm run --silent check >>"$log.check" 2>&1 || stop "npm run check fails after $ticket (see $log.check)"
+  npm run --silent check:full >>"$log.check" 2>&1 || stop "npm run check:full fails after $ticket (see $log.check)"
+  node "$trusted/scripts/factory/mutate-changed.ts" "$before_head" >"$log.mutation" 2>&1 ||
+    stop "the tests do not catch mistakes in $ticket's new code (see $log.mutation)"
+
+  # Keep the evidence next to the log: test-results/ is overwritten by the next run.
+  if [ -d test-results/screens ]; then
+    mkdir -p "$log.screens" && cp test-results/screens/*.png "$log.screens/" 2>/dev/null || true
+  fi
+  grep '^Mutation score' "$log.mutation" | sed 's/^/      /' || true
 }
 
 # The part of a ticket the agent may not change: everything above its review brief and comments,

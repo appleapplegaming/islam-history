@@ -6,6 +6,13 @@
       "Bash(npm run validate*)",
       "Bash(npm run check*)",
       "Bash(npm run guard*)",
+      "Bash(npm run lint*)",
+      "Bash(npm run e2e*)",
+      "Bash(npm run mutate*)",
+      "Bash(npm run check:full*)",
+      "Bash(npx oxlint*)",
+      "Bash(npx playwright test*)",
+      "Bash(npx stryker run*)",
       "Bash(npm run factory:status*)",
       "Bash(npx vitest *)",
       "Bash(npx tsc --noEmit*)",
@@ -42,7 +49,10 @@
       "Edit(/package-lock.json)",
       "Edit(/tsconfig*.json)",
       "Edit(/vite*.config.*)",
-      "Edit(/vitest*)"
+      "Edit(/vitest*)",
+      "Edit(/.oxlintrc.json)",
+      "Edit(/playwright.config.*)",
+      "Edit(/stryker.config.*)"
     ],
     "deny": [
       "Edit(/data/quran/**)"

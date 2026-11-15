@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GAME } from './config.ts';
 import { MapScene } from './scenes/MapScene.ts';
 
-new Phaser.Game({
+export const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   width: GAME.width,

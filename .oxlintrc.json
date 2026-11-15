@@ -1,0 +1,105 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import",
+    "vitest"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "ignorePatterns": [
+    "dist/**",
+    "reports/**",
+    ".stryker-tmp/**",
+    "test-results/**",
+    "playwright-report/**"
+  ],
+  "rules": {
+    "no-empty": [
+      "error",
+      {
+        "allowEmptyCatch": false
+      }
+    ],
+    "no-console": "off",
+    "typescript/no-explicit-any": "error",
+    "typescript/ban-ts-comment": "error",
+    "vitest/no-focused-tests": "error",
+    "vitest/no-disabled-tests": "error",
+    "eqeqeq": "error",
+    "no-var": "error",
+    "prefer-const": "error",
+    "import/default": "off",
+    "import/no-named-as-default-member": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "node:*",
+                  "fs",
+                  "path"
+                ],
+                "message": "src/ runs in the browser: no Node modules."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/systems/**/*.ts",
+        "src/content/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "phaser",
+                "message": "Systems and content logic are pure TypeScript: no Phaser (see CODING_STANDARDS.md)."
+              }
+            ],
+            "patterns": [
+              {
+                "group": [
+                  "node:*",
+                  "fs",
+                  "path"
+                ],
+                "message": "src/ runs in the browser: no Node modules."
+              }
+            ]
+          }
+        ],
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "Math",
+            "property": "random",
+            "message": "Systems are deterministic: use the seeded RNG."
+          },
+          {
+            "object": "Date",
+            "property": "now",
+            "message": "Systems are deterministic: pass time in."
+          }
+        ]
+      }
+    }
+  ]
+}

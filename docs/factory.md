@@ -72,7 +72,9 @@ scripts out of the repo, so the agent cannot change the code that judges it. Aft
 by itself: the status is `needs-review`; there are new commits and history was not rewritten; the
 tree is clean; no commit carries an override; the ticket's description and acceptance criteria are
 unchanged; a review brief exists; `.claude/settings.local.json` is untouched; the guard passes in
-strict mode (every commit and the whole range, no overrides); and `npm run check` passes. It stops
+strict mode (every commit and the whole range, no overrides); `npm run check:full` passes (types,
+lint, unit tests, validation and the browser smoke tests); and the mutation score on the lines the
+ticket changed is at least 90%. Screenshots from the browser tests are kept next to the log. It stops
 at the first problem. The agent runs in `dontAsk` mode: only commands pre-approved in
 `.claude/settings.json` run; guardrail edits, `git push`, `reset`, `rebase`, `checkout` and
 `config` are denied. Logs are in `.factory-logs/` (not committed).
@@ -89,11 +91,14 @@ following instructions.
 | Layer | Where | Catches |
 | --- | --- | --- |
 | Validation | `npm run validate` | Arabic outside `data/quran/`, bad or missing refs, `tradition` without label, tafsir without source, **missing honorifics** in content, **uncredited assets** |
-| Types and tests | `npm run typecheck`, `npm test` | Broken code |
+| Types and tests | `npm run typecheck`, `npm test` | Broken code (scripts are type-checked too, via `tsconfig.node.json`) |
+| Lint | `npm run lint` (oxlint, `.oxlintrc.json`) | Phaser or Node imports in `src/systems/` and `src/content/`, `Math.random`/`Date.now` in systems, empty `catch`, `any`, focused or skipped tests |
+| Browser smoke tests | `npm run e2e` (Playwright, `e2e/`) | The game failing to start, console errors, a scene not reaching the state the ticket promises. Tests read game state from the debug probe (`window.__storyDebug`) and save screenshots to `test-results/screens/` |
+| Mutation testing | `npm run mutate:changed`, `npm run mutate` (Stryker) | Tests that pass but would also pass with the code broken. New code: 90% of mutants on changed lines must be caught. Whole codebase: a ratchet in `stryker.config.mjs` that only goes up |
 | Guard | `npm run guard` | Agent "fixing" red by weakening checks: skipped or focused tests, net loss of tests or assertions, `any` and suppression comments, edits to guardrail files (`package.json`, hooks, checks, standards, `CLAUDE.md`, ...) |
-| Pre-commit hook | `.githooks/pre-commit` | Runs all of the above on every commit, so a commit is proof of green |
+| Pre-commit hook | `.githooks/pre-commit` | Runs guard, types, lint, tests and validation on every commit, so a commit is proof of green (browser and mutation tests are slower and run at review, in AFK verification and in CI) |
 | Claude Code hooks | `.claude/settings.json` | `--no-verify`, `commit -n`, `core.hooksPath` changes, force-push, shell writes to `data/quran/`, and ending a turn with uncommitted red code |
-| CI | `.github/workflows/check.yml` | Anything committed outside Claude or with hooks bypassed; lists every human override |
+| CI | `.github/workflows/check.yml` | Everything above again, for anything committed outside Claude or with hooks bypassed; lists every human override; uploads screenshots and the mutation report as an `evidence` artifact |
 
 **Human overrides.** When a guarded change is intended (you asked for a new dependency, or to
 improve the factory itself), commit with `FACTORY_ALLOW=<rule> git commit ...`. The commit-msg hook
@@ -110,7 +115,7 @@ and each looks at one thing only, so one concern cannot hide another (Matt's "tw
 | `spec-reviewer` | Does it do exactly what the ticket asked? Which test proves each criterion? | the ticket |
 | `standards-reviewer` | Does it follow how this repo writes code? | `CODING_STANDARDS.md`, `.claude/rules/` |
 | `faith-reviewer` | Religious rules, and is every narrative claim supported by its ayat? | `CLAUDE.md`, `data/quran/`, fetched tafsir |
-| `test-auditor` | Would the tests notice if the code were wrong? Breaks the code on purpose to find out. | the diff |
+| `test-auditor` | Would the tests notice if the code were wrong? Runs mutation testing on the changed lines, judges each survivor, checks the browser test covers the screen change. | the diff, Stryker |
 
 `CODING_STANDARDS.md` is read only by reviewers (implementers already carry a lot of context).
 
@@ -120,6 +125,8 @@ You review **evidence**, not code. Run `npm run factory:status -- --review` to p
 every ticket waiting for you. Each brief has:
 
 - each acceptance criterion with the test or check that would fail without it,
+- screenshots from the browser smoke test (AFK runs keep them in `.factory-logs/<run>.screens/`),
+- the mutation score on the lines the ticket changed,
 - every reviewer's verdict and what was fixed,
 - each narrative claim mapped to its ayah, and anything left unverified,
 - decisions the agent made that the ticket did not settle,
@@ -141,11 +148,19 @@ fix that (Matt's `/retro` skill does this from the session logs):
 - a vague result → a better ticket template or acceptance criteria,
 - an agent getting lost → a navigation pointer in `CLAUDE.md` or `docs/`.
 
-## Not built yet (each needs a new dependency, so ask first)
+## Evidence you can check without reading code
 
-- **Browser smoke test** with Playwright: start the game, click through a scene, assert the debug
-  overlay state and save a screenshot into the brief. Biggest gain for "verify without reading".
-- **Mutation testing** with Stryker: a mutation score threshold in CI, replacing the hand-run
-  mutations of `test-auditor`.
-- **ESLint** with custom rules (e.g. no Phaser import in `src/systems/`, no `Math.random` in
-  systems), so those standards become checks instead of review comments.
+| Question | Where the answer is |
+| --- | --- |
+| Does it do what the ticket says? | Acceptance table in the brief, each row a test name you can run |
+| Does it actually work in the game? | Screenshots, and the 2-minute hand test |
+| Would the tests catch a mistake? | Mutation score on changed lines (`npm run mutate:changed`); full report in `reports/mutation/index.html` |
+| Did the agent lower the bar? | AFK verification and CI: guard in strict mode, no overrides |
+| Is it faithful to the Quran? | Faith section of the brief: each claim mapped to an ayah |
+
+## Not built yet
+
+- **Docker sandbox** for AFK runs (Matt's recommendation): today the agent runs on your machine,
+  held in by `dontAsk` mode and an allow-list rather than a container.
+- **Visual regression**: screenshots are saved for you to look at, not compared to a baseline.
+  Worth adding once scenes have real art and stop changing every ticket.

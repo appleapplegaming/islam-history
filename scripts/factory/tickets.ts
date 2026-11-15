@@ -67,7 +67,7 @@ function byOrder(a: Ticket, b: Ticket): number {
  * same feature are all finished. Undefined when there is nothing an agent may do.
  */
 export function nextTicket(tickets: readonly Ticket[]): Ticket | undefined {
-  const sorted = [...tickets].sort(byOrder);
+  const sorted = tickets.toSorted(byOrder);
   const inProgress = sorted.find((t) => t.status === 'in-progress');
   if (inProgress) return inProgress;
   return sorted.find(
@@ -81,5 +81,5 @@ export function nextTicket(tickets: readonly Ticket[]): Ticket | undefined {
 }
 
 export function ticketsAwaitingReview(tickets: readonly Ticket[]): Ticket[] {
-  return tickets.filter((t) => t.status === 'needs-review').sort(byOrder);
+  return tickets.filter((t) => t.status === 'needs-review').toSorted(byOrder);
 }

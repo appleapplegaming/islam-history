@@ -38,8 +38,8 @@ const GUARDRAIL_PATHS = [
   /^\.githooks\//,
   /^\.github\/workflows\//,
   /^\.claude\//, // settings (incl. settings.local.json), hooks, agents, rules
-  /^\.gitattributes$/, // can hide diffs from the guard
-  /^\.gitignore$/, // can hide files from the clean-tree check
+  /(^|\/)\.gitattributes$/, // can hide diffs from the guard (at any depth)
+  /(^|\/)\.gitignore$/, // can hide files from the clean-tree check (at any depth)
   /^factory\//, // the loop runner and prompt
   /^scripts\/factory\//,
   /^scripts\/validate\.ts$/,
@@ -48,19 +48,24 @@ const GUARDRAIL_PATHS = [
   /^package(-lock)?\.json$/, // scripts and dependencies (new dependencies need approval anyway)
   /^tsconfig(\.[\w-]+)?\.json$/,
   /^vite(st)?\.(config|workspace)(\.[\w-]+)?\.[cm]?[jt]s$/,
-  /^CLAUDE\.md$/,
+  /(^|\/)CLAUDE\.md$/, // agent instructions, at any depth
+  /^tests\/factory\//, // the tests that define what the guard and the loop enforce
+  /(^|\/)\.oxlintrc\.json$/, // lint rules (oxlint also reads nested configs)
+  /^playwright\.config\.[cm]?[jt]s$/, // browser smoke tests
+  /^stryker\.config\.[cm]?[jt]s$/, // mutation testing and its thresholds
 ];
 
-// The guard's own source mentions every banned pattern, so it is exempt from pattern rules
-// (it is still a guardrail file, so changing it needs approval anyway).
+// The guard's own source and tests mention every banned pattern, so they are exempt from the
+// pattern rules (skipped-test, suppression) only. Both are guardrail files, so changing them needs
+// approval anyway, and the test-removal rule still applies to the tests.
 const PATTERN_EXEMPT = /^(scripts\/factory\/guard-rules\.ts|tests\/factory\/guard-rules\.test\.ts)$/;
 
 const SKIPPED_TEST = /\b(?:it|test|describe|suite|bench)(?:\.\w+)*\.(?:skip|only|todo|skipIf|runIf|fails)\b|\bx(?:it|test|describe)\s*\(/;
-const SUPPRESSION = /@ts-(?:ignore|nocheck|expect-error)|eslint-disable|\bas\s+any\b|[:<,|&(]\s*any\b|\bany\s*(?:\[\]|[>|&,)])/;
+const SUPPRESSION = /@ts-(?:ignore|nocheck|expect-error)|[a-z]*lint-disable|\bas\s+any\b|[:<,|&(]\s*any\b|\bany\s*(?:\[\]|[>|&,)])/;
 const TEST_CASE = /^\s*(?:it|test)(?:\.each\(.*?\))?\s*\(/;
 const ASSERTION = /\bexpect\s*\(/;
 
-const isTestFile = (path: string): boolean => path.startsWith('tests/') || /\.(test|spec)\.[cm]?[jt]sx?$/.test(path);
+const isTestFile = (path: string): boolean => path.startsWith('tests/') || path.startsWith('e2e/') || /\.(test|spec)\.[cm]?[jt]sx?$/.test(path);
 const isCode = (path: string): boolean => /\.[cm]?[jt]sx?$/.test(path);
 const count = (lines: string[], pattern: RegExp): number => lines.filter((line) => pattern.test(line)).length;
 /** Blanks out string literals so words inside messages are not mistaken for code. */
@@ -110,7 +115,7 @@ export function findGuardViolations(files: FileDiff[], allowed: ReadonlySet<stri
         if (SUPPRESSION.test(code)) violations.push({ rule: 'suppression', path, detail: line.trim() });
       }
     }
-    if (isTestFile(path) && !PATTERN_EXEMPT.test(path)) {
+    if (isTestFile(path)) {
       const lostCases = count(removed, TEST_CASE) - count(added, TEST_CASE);
       const lostAssertions = count(removed, ASSERTION) - count(added, ASSERTION);
       if (lostCases > 0 || lostAssertions > 0) {

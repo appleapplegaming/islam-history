@@ -58,7 +58,7 @@ export class MapScene extends Phaser.Scene {
     const marker = CHAPTER_MARKERS[this.selected];
     this.debug.update({
       sceneId: this.scene.key,
-      state: { selected: marker?.chapterId ?? 'none', playable: marker?.playable ?? false },
+      state: { selected: marker?.chapterId ?? 'none', playable: marker?.playable ?? false, message: this.message.text },
     });
   }
 

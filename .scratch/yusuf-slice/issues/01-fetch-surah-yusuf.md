@@ -9,7 +9,7 @@ against real Quran data.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Seams:** the pure function that turns the downloaded Tanzil text into the JSON shape (unit-tested
 with a small fixture); the script itself is a thin IO wrapper.
@@ -27,3 +27,8 @@ with a small fixture); the script itself is a thin IO wrapper.
 `@types/node` is not installed. Either approve adding `@types/node` as a dev dependency (and include
 `scripts` in `tsconfig.json`), or confirm the script stays un-type-checked with its logic in a pure,
 tested module. Then set the status to `ready-for-agent`.
+
+**Decision (2026-11-15):** `@types/node` is approved and installed. `scripts/` is now type-checked
+through `tsconfig.node.json` (part of `npm run typecheck`), so the script can use Node APIs with full
+types. Put the parsing in a pure module under `scripts/lib/` (no Node imports) with unit tests, as the
+Seams say: files there are mutation-tested, and new code needs a 90% score.

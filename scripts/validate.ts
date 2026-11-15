@@ -1,5 +1,6 @@
 // Content validation: `npm run validate`. Must pass before every commit.
 // File IO only; the checks themselves live in src/content/validate.ts and are unit-tested.
+import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { findUncreditedAssets } from '../src/content/credits.ts';
@@ -30,7 +31,7 @@ function readJson(path: string): unknown {
   try {
     return JSON.parse(readFileSync(path, 'utf8'));
   } catch (error) {
-    throw new Error(`Could not parse ${relative(ROOT, path)}: ${(error as Error).message}`);
+    throw new Error(`Could not parse ${relative(ROOT, path)}: ${(error as Error).message}`, { cause: error });
   }
 }
 
@@ -48,7 +49,22 @@ function loadQuranIndex(): Map<number, number> {
 
 const errors: string[] = [];
 
-for (const file of walk(ROOT)) {
+/**
+ * Every file git would commit: tracked files plus untracked ones that are not ignored. Generated
+ * output (mutation reports, screenshots, logs) is ignored and never shipped, so it is not checked.
+ * .gitignore is a guardrail file, so an agent cannot hide a file from this check.
+ */
+function committableTextFiles(): string[] {
+  const listed = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' });
+  return listed
+    .split('\0')
+    .filter((name) => name !== '' && !name.startsWith('data/quran/') && name !== 'package-lock.json')
+    .filter((name) => TEXT_EXTENSIONS.some((ext) => name.endsWith(ext)))
+    .map((name) => join(ROOT, name))
+    .filter((path) => existsSync(path)); // a deleted but not yet staged file is still listed
+}
+
+for (const file of committableTextFiles()) {
   const found = findDisallowedArabic(readFileSync(file, 'utf8'));
   if (found.length > 0) {
     errors.push(`${relative(ROOT, file)}: Arabic text outside data/quran/ (${found.slice(0, 3).join(' | ')})`);

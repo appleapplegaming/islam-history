@@ -17,6 +17,11 @@ describe('findDisallowedArabic', () => {
     expect(findDisallowedArabic(`text ${ARABIC_LETTERS} more`)).toEqual([ARABIC_LETTERS]);
   });
 
+  it('reports the Arabic on each side of an honorific as separate runs', () => {
+    const salawat = String.fromCodePoint(0xfdfa);
+    expect(findDisallowedArabic(`${ARABIC_LETTERS}${salawat}${ARABIC_LETTERS}`)).toEqual([ARABIC_LETTERS, ARABIC_LETTERS]);
+  });
+
   it('flags presentation-form Arabic too', () => {
     expect(findDisallowedArabic(String.fromCodePoint(0xfe8d, 0xfe8f))).toHaveLength(1);
   });
@@ -62,5 +67,44 @@ describe('validateChapter', () => {
 
   it('fails when the file has no scenes array', () => {
     expect(validateChapter('y.json', {}, index)).toEqual(['y.json: missing "scenes" array']);
+  });
+
+  it('fails when the file is not a JSON object', () => {
+    expect(validateChapter('y.json', null, index)).toEqual(['y.json: not a JSON object']);
+    expect(validateChapter('y.json', 'scenes', index)).toEqual(['y.json: not a JSON object']);
+  });
+
+  it('fails when a scene is not an object', () => {
+    expect(validateChapter('y.json', { scenes: [null, 'scene'] }, index)).toEqual(['y.json scene #0: not an object', 'y.json scene #1: not an object']);
+  });
+
+  it('treats a whitespace-only field as missing', () => {
+    expect(validateChapter('y.json', { scenes: [scene({ title: '   ' })] }, index)).toEqual(['y.json scene "s1": missing "title"']);
+  });
+
+  it('fails when a ref is not a string', () => {
+    expect(validateChapter('y.json', { scenes: [scene({ refs: [42] })] }, index)).toEqual(['y.json scene "s1": ref 42 is not a string']);
+  });
+
+  it('accepts complete tafsir notes', () => {
+    expect(validateChapter('y.json', { scenes: [scene({ tafsirNotes: [{ source: 'Ibn Kathir', ayah: '12:4' }] })] }, index)).toEqual([]);
+  });
+
+  it('fails when a tafsir note has no ayah', () => {
+    const errors = validateChapter('y.json', { scenes: [scene({ tafsirNotes: [{ source: 'Ibn Kathir' }] })] }, index);
+    expect(errors).toEqual(['y.json scene "s1": tafsirNotes[0] has no ayah']);
+  });
+
+  it('fails when a tafsir note is not an object', () => {
+    expect(validateChapter('y.json', { scenes: [scene({ tafsirNotes: [null] })] }, index)).toEqual([
+      'y.json scene "s1": tafsirNotes[0] has no source',
+      'y.json scene "s1": tafsirNotes[0] has no ayah',
+    ]);
+  });
+
+  it('fails when tafsirNotes is not an array', () => {
+    expect(validateChapter('y.json', { scenes: [scene({ tafsirNotes: 'Ibn Kathir' })] }, index)).toEqual([
+      'y.json scene "s1": "tafsirNotes" must be an array',
+    ]);
   });
 });

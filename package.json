@@ -8,10 +8,15 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+    "lint": "oxlint --deny-warnings",
     "validate": "node scripts/validate.ts",
+    "e2e": "playwright test",
+    "mutate": "stryker run",
+    "mutate:changed": "node scripts/factory/mutate-changed.ts",
     "guard": "node scripts/factory/guard.ts",
-    "check": "npm run typecheck && npm test && npm run validate",
+    "check": "npm run typecheck && npm run lint && npm test && npm run validate",
+    "check:full": "npm run check && npm run e2e",
     "factory:status": "node scripts/factory/status.ts",
     "prepare": "git config core.hooksPath .githooks"
   },
@@ -19,6 +24,11 @@
     "phaser": "^3.90.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/vitest-runner": "^10.1.1",
+    "@types/node": "^26.6.6",
+    "oxlint": "^1.93.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, FONTS } from '../config.ts';
-import { formatDebugLines, type DebugInfo } from '../systems/debug.ts';
+import { formatDebugLines, publishDebugInfo, type DebugInfo } from '../systems/debug.ts';
 
 /** Debug panel in the top-left corner. Hidden until toggled with the toggle_debug action. */
 export class DebugOverlay {
@@ -21,6 +21,7 @@ export class DebugOverlay {
   }
 
   update(info: DebugInfo): void {
+    publishDebugInfo(globalThis, info);
     if (this.visible) this.text.setText(formatDebugLines(info));
   }
 }

@@ -17,7 +17,9 @@ Game design, chapter plan and planned layout: `docs/design.md`. Read it before b
 - `npm run dev`: run the game locally
 - `npm test`: Vitest unit tests
 - `npm run validate`: content validation, must pass before every commit
-- `npm run check`: typecheck + tests + validate (the pre-commit hook also runs `npm run guard`)
+- `npm run check`: typecheck + lint + tests + validate (the pre-commit hook also runs `npm run guard`)
+- `npm run e2e`: browser smoke tests in `e2e/` (Playwright); `npm run check:full` = check + e2e
+- `npm run mutate:changed`: mutation-test the lines changed since main (new code needs 90%)
 
 ## Religious rules
 

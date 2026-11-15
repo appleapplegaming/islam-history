@@ -12,5 +12,6 @@ fi
 
 npm run --silent guard
 npm run --silent typecheck
+npm run --silent lint
 npm run --silent test -- --reporter=dot
 npm run --silent validate

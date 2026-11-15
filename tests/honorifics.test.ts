@@ -47,4 +47,8 @@ describe('checkHonorificsInJson', () => {
     const chapter = { title: 'Surah Yusuf', scenes: [{ narration: 'Yusuf dreamed.' }, { narration: 'Yusuf (as) woke.' }] };
     expect(checkHonorificsInJson('y.json', chapter)).toEqual(['y.json scenes[0].narration: "Yusuf" has no honorific after it']);
   });
+
+  it('skips values that are not strings, arrays or objects', () => {
+    expect(checkHonorificsInJson('y.json', { audio: null, order: 3, draft: true, missing: undefined, scenes: [null, 7] })).toEqual([]);
+  });
 });

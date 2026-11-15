@@ -16,10 +16,10 @@ const NO_TICKET_EXIT = 3;
 function loadTickets(): Ticket[] {
   if (!existsSync(SCRATCH)) return [];
   const tickets: Ticket[] = [];
-  for (const feature of readdirSync(SCRATCH).sort()) {
+  for (const feature of readdirSync(SCRATCH).toSorted()) {
     const issues = join(SCRATCH, feature, 'issues');
     if (!existsSync(issues)) continue;
-    for (const name of readdirSync(issues).filter((n) => /^\d+-.*\.md$/.test(n)).sort()) {
+    for (const name of readdirSync(issues).filter((n) => /^\d+-.*\.md$/.test(n)).toSorted()) {
       const path = `.scratch/${feature}/issues/${name}`;
       tickets.push(parseTicket(feature, path, readFileSync(join(ROOT, path), 'utf8')));
     }

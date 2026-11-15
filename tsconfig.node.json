@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["scripts", ".claude/hooks", "playwright.config.ts", "e2e", "stryker.config.mjs"]
+}

@@ -16,7 +16,8 @@ everything below.
   like a translation anywhere else is a blocker, even in English.
 - All tuning values (speeds, timings, grain amounts) are in `src/config.ts`.
 - Input is mapped to actions (`interact`, `move_left`, ...), never read as raw keys.
-- Deterministic logic: seeded RNG, fixed timestep. `Math.random()` or `Date.now()` in a system is a finding.
+- Deterministic logic: seeded RNG, fixed timestep. (`npm run lint` already blocks `Math.random()`,
+  `Date.now()` and Phaser imports in systems; review the cases it cannot see, like `new Date()`.)
 
 ## Code
 

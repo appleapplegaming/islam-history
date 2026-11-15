@@ -22,7 +22,7 @@ const MUHAMMAD_HONORIFIC = `\\s*${SALAWAT}`;
 
 // Longest names first so "Ya'qub" is matched whole before "Yaqub"-like prefixes.
 const NAME_ALTERNATION = [...PROPHET_NAMES, MUHAMMAD]
-  .sort((a, b) => b.length - a.length)
+  .toSorted((a, b) => b.length - a.length)
   .map(escape)
   .join('|');
 
