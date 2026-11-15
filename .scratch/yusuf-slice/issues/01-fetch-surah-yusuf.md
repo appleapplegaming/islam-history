@@ -9,7 +9,7 @@ against real Quran data.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-review
+**Status:** done
 **Started at:** 8584d57
 
 **Seams:** the pure function that turns the downloaded Tanzil text into the JSON shape (unit-tested
@@ -48,6 +48,11 @@ Seams say: files there are mutation-tested, and new code needs a 90% score.
    text, and remove the basmala item from `docs/open-questions.md`.
 2. **Full comparison with tanzil.net:** accepted as is. The spot check is enough; drop it from
    the open questions.
+
+
+**Review (human, 2026-11-15):** accepted. Keeping `data/quran/basmala.json` (Tanzil's 1:1,
+unaltered) is approved: it lets the data test prove 12:1 no longer starts with the basmala.
+That settles the spec reviewer's open finding.
 
 ## Review brief
 
