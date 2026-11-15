@@ -9,7 +9,7 @@ against real Quran data.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-review
+**Status:** ready-for-agent
 **Started at:** 8584d57
 
 **Seams:** the pure function that turns the downloaded Tanzil text into the JSON shape (unit-tested
@@ -33,6 +33,21 @@ tested module. Then set the status to `ready-for-agent`.
 through `tsconfig.node.json` (part of `npm run typecheck`), so the script can use Node APIs with full
 types. Put the parsing in a pure module under `scripts/lib/` (no Node imports) with unit tests, as the
 Seams say: files there are mutation-tested, and new code needs a 90% score.
+
+
+**Review feedback (human, 2026-11-15):**
+
+1. **Basmala: remove it from 12:1.** Tanzil prefixes the basmala to the first ayah of each surah,
+   but it is not part of 12:1, and the translation of 12:1 does not include it. The JSON must
+   hold 12:1 without it. This overrides "taken unaltered" for this one case only: removing a
+   prefix Tanzil adds is not changing an ayah, and nothing else may be trimmed or normalised.
+   How: never type the basmala (no Arabic in code, ever). Take it from Tanzil's own text of
+   1:1 (Al-Fatiha's first ayah is the basmala), and strip it from the start of 12:1 only if
+   12:1 starts with exactly that text followed by whitespace; otherwise fail with a clear
+   message. Test it with fixture text, add the data test that 12:1 no longer starts with 1:1's
+   text, and remove the basmala item from `docs/open-questions.md`.
+2. **Full comparison with tanzil.net:** accepted as is. The spot check is enough; drop it from
+   the open questions.
 
 ## Review brief
 
