@@ -40,33 +40,8 @@
       "Bash(cmp *)",
       "Bash(pwd)"
     ],
-    "ask": [
-      "Edit(/.githooks/**)",
-      "Edit(/.github/workflows/**)",
-      "Edit(/.claude/**)",
-      "Edit(/.gitattributes)",
-      "Edit(/.gitignore)",
-      "Edit(/factory/**)",
-      "Edit(/scripts/factory/**)",
-      "Edit(/scripts/validate.ts)",
-      "Edit(/src/content/validate.ts)",
-      "Edit(/src/content/honorifics.ts)",
-      "Edit(/src/content/credits.ts)",
-      "Edit(/src/content/refs.ts)",
-      "Edit(/CODING_STANDARDS.md)",
-      "Edit(/CLAUDE.md)",
-      "Edit(/package.json)",
-      "Edit(/package-lock.json)",
-      "Edit(/tsconfig*.json)",
-      "Edit(/vite*.config.*)",
-      "Edit(/vitest*)",
-      "Edit(/.oxlintrc.json)",
-      "Edit(/playwright.config.*)",
-      "Edit(/stryker.config.*)"
-    ],
-    "deny": [
-      "Edit(/data/quran/**)"
-    ]
+    "ask": ["Edit(/.githooks/**)", "Edit(/.github/workflows/**)"],
+    "deny": ["Edit(/data/quran/**)"]
   },
   "hooks": {
     "PreToolUse": [
