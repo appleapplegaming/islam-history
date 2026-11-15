@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSurahJson, extractLicence, parseTanzilLines } from '../scripts/lib/tanzil.ts';
+import { buildSurahJson, extractLicence, findLicence, parseTanzilLines } from '../scripts/lib/tanzil.ts';
 
 const arabic = ['12|1|AR one', '12|2|AR two', '13|1|AR other surah', '#', '# licence notice'].join('\n');
 const english = ['12|1|EN one', '12|2|EN two', '13|1|EN other surah', '#', '# licence notice'].join('\n');
@@ -57,6 +57,13 @@ describe('extractLicence', () => {
 
   it('removes only the leading comment marker, not a "#" inside the text', () => {
     expect(extractLicence('# issue #1\n#   indented\n')).toBe('issue #1\n  indented\n');
+  });
+});
+
+describe('findLicence', () => {
+  it('returns undefined when there is no notice, and the notice when there is one', () => {
+    expect(findLicence('12|1|AR one\n')).toBeUndefined();
+    expect(findLicence('12|1|AR one\n# Terms\n')).toBe('Terms\n');
   });
 });
 

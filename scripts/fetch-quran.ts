@@ -4,13 +4,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildSurahJson, extractLicence } from './lib/tanzil.ts';
+import { fetchSurah } from './lib/fetch-surah.ts';
 
-const SURAH = 12;
-const AYAT = 111;
-const ARABIC_URL =
-  'https://tanzil.net/pub/download/index.php?quranType=uthmani&marks=true&sajdah=false&tatweel=false&outType=txt-2&agree=true';
-const TRANSLATION_URL = 'https://tanzil.net/trans/en.sahih';
+const dir = join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'quran');
 
 async function download(url: string): Promise<string> {
   const response = await fetch(url);
@@ -18,18 +14,24 @@ async function download(url: string): Promise<string> {
   return response.text();
 }
 
-async function main(): Promise<void> {
-  const [arabic, translation] = await Promise.all([download(ARABIC_URL), download(TRANSLATION_URL)]);
-  const surah = buildSurahJson({ arabic, translation, surah: SURAH, expectedAyat: AYAT });
-  const licence = extractLicence(arabic);
-  const dir = join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'quran');
+async function write(fileName: string, content: string): Promise<void> {
   await mkdir(dir, { recursive: true });
-  await writeFile(join(dir, 'surah-012.json'), `${JSON.stringify(surah, null, 2)}\n`);
-  await writeFile(join(dir, 'LICENSE'), licence);
-  console.log(`Wrote ${surah.ayat.length} ayat to data/quran/surah-012.json and the Tanzil licence.`);
+  await writeFile(join(dir, fileName), content);
 }
 
-main().catch((error: unknown) => {
-  console.error(`fetch-quran failed, nothing written: ${error instanceof Error ? error.message : String(error)}`);
-  process.exitCode = 1;
-});
+fetchSurah(
+  {
+    surah: 12,
+    expectedAyat: 111,
+    fileName: 'surah-012.json',
+    arabicUrl:
+      'https://tanzil.net/pub/download/index.php?quranType=uthmani&marks=true&sajdah=false&tatweel=false&outType=txt-2&agree=true',
+    translationUrl: 'https://tanzil.net/trans/en.sahih',
+  },
+  { download, write },
+)
+  .then((count) => console.log(`Wrote ${count} ayat to data/quran/surah-012.json and the Tanzil licence.`))
+  .catch((error: unknown) => {
+    console.error(`fetch-quran failed, nothing written: ${error instanceof Error ? error.message : String(error)}`);
+    process.exitCode = 1;
+  });
