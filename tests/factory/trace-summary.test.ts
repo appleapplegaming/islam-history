@@ -120,6 +120,7 @@ describe('summariseTrace', () => {
       subagents: ['faith-reviewer'],
       denied: ['Write /w.ts: Permission to write denied', 'Agent faith-reviewer: Agent not allowed'],
       failedCommands: 0,
+      verdicts: { 'faith-reviewer': 'none' },
     });
   });
 
@@ -136,6 +137,7 @@ describe('formatTraceSummary', () => {
       [
         'Run: 12.6 min, 42 turns, $1.23',
         'Subagents: faith-reviewer',
+        'Final reviewer verdicts: faith-reviewer none',
         'Files changed (2):',
         '  scripts/fetch-quran.ts',
         '  scripts/lib/tanzil.ts',
@@ -170,5 +172,61 @@ describe('summariseTrace with several result events', () => {
       JSON.stringify({ type: 'result', num_turns: 9, duration_ms: 25_448, total_cost_usd: 1.3, result: 'TICKET DONE: 01' }),
     ].join('\n');
     expect(summariseTrace(resumed)).toMatchObject({ turns: 48, minutes: 2.2, costUsd: 1.3, finalMessage: 'TICKET DONE: 01' });
+  });
+});
+
+const said = (parent: string, text: string) =>
+  JSON.stringify({ type: 'assistant', parent_tool_use_id: parent, message: { content: [{ type: 'text', text }] } });
+
+describe('summariseTrace reviewer verdicts', () => {
+  it('takes each reviewer\'s verdict from its own latest run, not from the implementing agent', () => {
+    const reviewLog = [
+      toolUse('s1', 'Agent', { subagent_type: 'spec-reviewer' }),
+      toolUse('f1', 'Agent', { subagent_type: 'faith-reviewer' }),
+      said('s1', 'Reading the ticket.'),
+      said('s1', '```\nVERDICT: changes-needed\nCRITERIA: ...'),
+      said('f1', 'VERDICT: PASS'),
+      JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: 'All reviewers say VERDICT: pass' }] } }),
+      toolUse('s2', 'Agent', { subagent_type: 'spec-reviewer' }),
+      said('s2', 'Draft VERDICT: changes-needed, then after checking again:\nVERDICT: pass'),
+    ].join('\n');
+    expect(summariseTrace(reviewLog).verdicts).toEqual({ 'spec-reviewer': 'pass', 'faith-reviewer': 'pass' });
+  });
+
+  it('reports "none" when the latest run of a reviewer printed no verdict, even if an earlier run passed', () => {
+    const reviewLog = [
+      toolUse('t1', 'Agent', { subagent_type: 'test-auditor' }),
+      said('t1', 'VERDICT: pass'),
+      toolUse('t2', 'Agent', { subagent_type: 'test-auditor' }),
+      said('t2', 'I ran out of time.'),
+    ].join('\n');
+    expect(summariseTrace(reviewLog).verdicts).toEqual({ 'test-auditor': 'none' });
+  });
+
+  it('does not count a subagent\'s own tool calls as the implementing agent\'s', () => {
+    const subagentCall = JSON.stringify({
+      type: 'assistant',
+      parent_tool_use_id: 'a1',
+      message: { content: [{ type: 'tool_use', id: 'x', name: 'Bash', input: { command: 'npm run mutate:changed' } }] },
+    });
+    const summary = summariseTrace([toolUse('a1', 'Agent', { subagent_type: 'test-auditor' }), subagentCall].join('\n'));
+    expect(summary.commands).toEqual([]);
+  });
+
+  it('keeps a verdict when the reviewer writes more afterwards, and reads one with no space after the colon', () => {
+    const reviewLog = [
+      toolUse('s1', 'Agent', { subagent_type: 'spec-reviewer' }),
+      toolUse('f1', 'Agent', { subagent_type: 'faith-reviewer' }),
+      said('s1', 'VERDICT:pass'),
+      said('s1', 'Anything else you need?'),
+      JSON.stringify({ type: 'assistant', parent_tool_use_id: 'f1' }),
+    ].join('\n');
+    expect(summariseTrace(reviewLog).verdicts).toEqual({ 'spec-reviewer': 'pass', 'faith-reviewer': 'none' });
+    expect(formatTraceSummary(summariseTrace(reviewLog))).toContain('Final reviewer verdicts: spec-reviewer pass, faith-reviewer none\n');
+  });
+
+  it('prints the final verdicts after the subagents', () => {
+    const reviewLog = [toolUse('s1', 'Agent', { subagent_type: 'spec-reviewer' }), said('s1', 'VERDICT: changes-needed')].join('\n');
+    expect(formatTraceSummary(summariseTrace(reviewLog))).toContain('Subagents: spec-reviewer\nFinal reviewer verdicts: spec-reviewer changes-needed\n');
   });
 });

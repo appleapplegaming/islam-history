@@ -75,7 +75,8 @@ tree is clean; no commit carries an override; the ticket's description and accep
 unchanged; a review brief exists; `.claude/settings.local.json` is untouched; the guard passes in
 strict mode (every commit and the whole range, no overrides); `npm run check:full` passes (types,
 lint, unit tests, validation and the browser smoke tests); and the mutation score on the lines the
-ticket changed is at least 90%. Screenshots from the browser tests are kept next to the log. It stops
+ticket changed is at least 90%; and every reviewer's last `VERDICT:`, read from the reviewers'
+own messages in the session log rather than from the brief, is `pass`. Screenshots from the browser tests are kept next to the log. It stops
 at the first problem. The agent runs in `dontAsk` mode: only commands pre-approved in
 `.claude/settings.json` run; guardrail edits, `git push`, `reset`, `rebase`, `checkout` and
 `config` are denied. Logs are in `.factory-logs/` (not committed): a full JSON trace of every tool

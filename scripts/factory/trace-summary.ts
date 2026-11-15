@@ -12,6 +12,12 @@ export interface TraceSummary {
   costUsd?: number;
   minutes?: number;
   finalMessage?: string;
+  /**
+   * Final verdict per reviewer subagent: the `VERDICT:` line of its latest run, read from the
+   * subagent's own messages (not from what the implementing agent says about it). "none" when
+   * the latest run printed no verdict. Absent when no subagent ran.
+   */
+  verdicts?: Record<string, string>;
 }
 
 interface ContentBlock {
@@ -26,6 +32,8 @@ interface ContentBlock {
 
 interface TraceEvent {
   type?: string;
+  /** Set on messages written by a subagent: the id of the Agent call that started it. */
+  parent_tool_use_id?: string | null;
   message?: { content?: ContentBlock[] };
   num_turns?: number;
   total_cost_usd?: number;
@@ -34,6 +42,7 @@ interface TraceEvent {
 }
 
 const DENIAL = /permission|denied|not allowed|blocked by .*hook/i;
+const VERDICT = /VERDICT:\s*([a-z-]+)/gi;
 const FILE_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
 
 function text(content: unknown): string {
@@ -53,6 +62,8 @@ export function summariseTrace(log: string): TraceSummary {
   const files = new Set<string>();
   const calls = new Map<string, { label: string; isCommand: boolean }>();
   let durationMs: number | undefined;
+  const runs: { id: string; type: string }[] = [];
+  const verdictByRun = new Map<string, string>();
   for (const raw of log.split('\n')) {
     if (!raw.startsWith('{')) continue;
     let event: TraceEvent;
@@ -69,6 +80,11 @@ export function summariseTrace(log: string): TraceSummary {
       if (event.duration_ms !== undefined) durationMs = (durationMs ?? 0) + event.duration_ms;
       if (event.result !== undefined) summary.finalMessage = firstLine(event.result, 300);
       continue;
+    }
+    if (event.parent_tool_use_id) {
+      const said = [...text(event.message?.content).matchAll(VERDICT)].at(-1)?.[1];
+      if (said !== undefined) verdictByRun.set(event.parent_tool_use_id, said.toLowerCase());
+      continue; // the subagent's own tool calls are not the implementing agent's
     }
     for (const block of event.message?.content ?? []) {
       if (block.type === 'tool_use' && block.name) {
@@ -88,6 +104,7 @@ export function summariseTrace(log: string): TraceSummary {
         } else if ((block.name === 'Agent' || block.name === 'Task') && typeof subagent === 'string') {
           summary.subagents.push(subagent);
           label = `Agent ${subagent}`;
+          if (block.id) runs.push({ id: block.id, type: subagent });
         }
         if (block.id) calls.set(block.id, { label, isCommand });
       } else if (block.type === 'tool_result' && block.is_error) {
@@ -99,6 +116,10 @@ export function summariseTrace(log: string): TraceSummary {
     }
   }
   summary.filesChanged = [...files].toSorted();
+  if (runs.length > 0) {
+    summary.verdicts = {};
+    for (const { id, type } of runs) summary.verdicts[type] = verdictByRun.get(id) ?? 'none';
+  }
   if (durationMs !== undefined) summary.minutes = Math.round(durationMs / 6000) / 10;
   return summary;
 }
@@ -113,6 +134,10 @@ export function formatTraceSummary(summary: TraceSummary, root = ''): string {
   const lines: string[] = [];
   if (stats.length > 0) lines.push(`Run: ${stats.join(', ')}`);
   lines.push(`Subagents: ${summary.subagents.length > 0 ? summary.subagents.join(', ') : 'none'}`);
+  if (summary.verdicts !== undefined) {
+    const verdicts = Object.entries(summary.verdicts).map(([type, verdict]) => `${type} ${verdict}`);
+    lines.push(`Final reviewer verdicts: ${verdicts.join(', ')}`);
+  }
   lines.push(`Files changed (${summary.filesChanged.length}):`, ...summary.filesChanged.map((f) => `  ${rel(f)}`));
   lines.push(`Commands (${summary.commands.length}, ${summary.failedCommands} failed):`, ...summary.commands.map((c) => `  $ ${c}`));
   lines.push(`Denied (${summary.denied.length}):`, ...summary.denied.map((d) => `  ! ${d}`));

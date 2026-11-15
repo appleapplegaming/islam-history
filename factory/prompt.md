@@ -66,7 +66,9 @@ subagents **in parallel**, giving each only the ticket path and the range:
 Fix every blocker, should-fix, `fail`, `partial`/`missing` criterion and surviving mutation, commit,
 and run the reviewers whose verdict was `changes-needed` again. Stop after **3 review rounds**: if
 something still fails, it goes into the brief as an open issue and the status becomes
-`ready-for-human` instead of `needs-review`.
+`ready-for-human` instead of `needs-review`. A finding you disagree with is not fixed: re-run that reviewer
+with your reasoning, or leave the ticket `ready-for-human`. The loop reads each reviewer's last
+`VERDICT:` from the session log and refuses `needs-review` unless all four end in `pass`.
 
 ## 5. Review brief
 

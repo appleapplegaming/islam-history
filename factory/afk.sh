@@ -80,6 +80,14 @@ verify() {
       ;;
   esac
 
+  # Reviewer verdicts are read from the reviewers' own messages in the log, not from the brief.
+  verdicts=$(node "$trusted/scripts/factory/trace.ts" "$log" --verdicts) || stop "cannot read reviewer verdicts from $log"
+  for reviewer in spec-reviewer standards-reviewer faith-reviewer test-auditor; do
+    verdict=$(printf '%s\n' "$verdicts" | sed -n "s/^$reviewer //p")
+    [ "$verdict" = pass ] ||
+      stop "$reviewer's last verdict was '${verdict:-never ran}', so $ticket may not be needs-review (it should be ready-for-human)"
+  done
+
   [ "$(git rev-parse HEAD)" != "$before_head" ] || stop "$ticket produced no commits"
   git merge-base --is-ancestor "$before_head" HEAD || stop "history before $ticket was rewritten (amend/reset)"
   [ -z "$(git status --porcelain --ignored=no)" ] || stop "$ticket left uncommitted changes"
