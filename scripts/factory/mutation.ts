@@ -4,7 +4,7 @@
  * Files Stryker may mutate: game logic, pure script modules in scripts/lib/, and the factory's own
  * pure rules. Keep in sync with stryker.config.mjs. Script entry points (IO wrappers) are not mutated.
  */
-export const MUTABLE_FILE = /^(src\/(systems|content)\/.+|scripts\/lib\/.+|scripts\/factory\/(guard-rules|tickets|bash-policy|mutation))\.ts$/;
+export const MUTABLE_FILE = /^(src\/(systems|content)\/.+|scripts\/lib\/.+|scripts\/factory\/(guard-rules|tickets|bash-policy|mutation|trace-summary))\.ts$/;
 
 export interface LineRange {
   start: number;

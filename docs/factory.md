@@ -63,6 +63,7 @@ down, and the reviewers check against exactly these criteria.
 | `npm run factory:status` | Every ticket, its status, and which one is next |
 | `factory/once.sh` | **HITL**: one ticket in an interactive session you watch and steer |
 | `factory/afk.sh 5` | **AFK**: up to 5 tickets unattended, one after another |
+| `npm run factory:trace` | What the agent did in the last AFK iteration: every command, file changed, subagent, denied action, time and cost |
 
 Start with `once.sh` (Matt: always HITL before AFK). Watch where the agent struggles, then fix the
 ticket, the prompt or a check, not the code. Move to `afk.sh` once a few iterations need no help.
@@ -77,7 +78,12 @@ lint, unit tests, validation and the browser smoke tests); and the mutation scor
 ticket changed is at least 90%. Screenshots from the browser tests are kept next to the log. It stops
 at the first problem. The agent runs in `dontAsk` mode: only commands pre-approved in
 `.claude/settings.json` run; guardrail edits, `git push`, `reset`, `rebase`, `checkout` and
-`config` are denied. Logs are in `.factory-logs/` (not committed).
+`config` are denied. Logs are in `.factory-logs/` (not committed): a full JSON trace of every tool
+call, which `npm run factory:trace` turns into a one-screen summary.
+
+Claude ignores a project's `.claude/settings.json` (allow-list and hooks) in a folder it has not been
+told to trust, so `afk.sh` refuses to start until you have run `claude` there once and accepted the
+trust dialog.
 
 These checks were tested against a fake agent that tampers with its acceptance criteria, skips a
 test behind `--no-verify`, forges an override trailer, and guts the guard itself: each run stopped
@@ -156,6 +162,7 @@ fix that (Matt's `/retro` skill does this from the session logs):
 | Does it actually work in the game? | Screenshots, and the 2-minute hand test |
 | Would the tests catch a mistake? | Mutation score on changed lines (`npm run mutate:changed`); full report in `reports/mutation/index.html` |
 | Did the agent lower the bar? | AFK verification and CI: guard in strict mode, no overrides |
+| What did the agent actually run? | `npm run factory:trace`: commands, files, denied actions |
 | Is it faithful to the Quran? | Faith section of the brief: each claim mapped to an ayah |
 
 ## Not built yet

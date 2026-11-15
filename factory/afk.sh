@@ -19,6 +19,8 @@ main() {
   trusted=$(mktemp -d "${TMPDIR:-/tmp}/factory-trusted.XXXXXX")
   trap 'rm -rf "$trusted"' EXIT
 
+  trust_check
+
   i=1
   while [ "$i" -le "$max" ]; do
     [ -z "$(git status --porcelain --ignored=no)" ] || stop "working tree is not clean; commit or stash first"
@@ -43,13 +45,18 @@ main() {
     log="$logs/$(date +%Y%m%d-%H%M%S)-$(basename "$ticket" .md).log"
     echo "[$i/$max] $ticket  (log: $log)"
 
-    claude -p \
-      --permission-mode dontAsk \
-      --allowedTools "Read Edit Write Glob Grep Agent Skill TodoWrite WebFetch(domain:quran.com) WebFetch(domain:tanzil.net)" \
-      --disallowedTools "Bash(git push*) Bash(git reset*) Bash(git rebase*) Bash(git checkout*) Bash(git switch*) Bash(git config*)" \
-      "$(cat factory/prompt.md)
-
-Ticket: $ticket" >"$log" 2>&1 || stop "claude exited with an error on $ticket (see $log)"
+    # The prompt goes in on stdin: --allowedTools/--disallowedTools take any number of values and
+    # would swallow a prompt passed as the last argument.
+    printf '%s\n\nTicket: %s\n' "$(cat factory/prompt.md)" "$ticket" |
+      claude -p \
+        --permission-mode dontAsk --output-format stream-json --verbose \
+        --allowedTools "Read Edit Write Glob Grep Agent Skill TodoWrite WebFetch(domain:quran.com) WebFetch(domain:tanzil.net)" \
+        --disallowedTools "Bash(git push*) Bash(git reset*) Bash(git rebase*) Bash(git checkout*) Bash(git switch*) Bash(git config*)" \
+        >"$log" 2>&1 || stop "claude exited with an error on $ticket (see $log)"
+    # Claude ignores the project's allow-list and hooks in a folder it has not been told to trust.
+    if grep -q 'has not been trusted' "$log"; then
+      stop "Claude does not trust this folder, so it ignored .claude/settings.json. Run 'claude' here once, accept the trust dialog, then rerun."
+    fi
 
     verify "$ticket" "$before_head" "$local_settings_before" "$log"
     echo "      done: $ticket is waiting for your review (screenshots: $log.screens/)"
@@ -103,6 +110,24 @@ criteria() {
 
 criteria_unchanged() {
   [ "$(git show "$2:$1" | criteria)" = "$(criteria <"$1")" ]
+}
+
+# Without workspace trust, Claude silently drops the allow-list and hooks in .claude/settings.json,
+# so the agent would run without its brakes. Check before spending an iteration.
+trust_check() {
+  dir=$(pwd -P)
+  trusted_flag=$(node -e '
+    const fs = require("fs"), path = require("path"), os = require("os");
+    let config = {};
+    try { config = JSON.parse(fs.readFileSync(path.join(os.homedir(), ".claude.json"), "utf8")); } catch (e) { console.log("unknown"); process.exit(0); }
+    let d = process.argv[1];
+    for (;;) { const p = (config.projects || {})[d]; if (p && p.hasTrustDialogAccepted) { console.log("yes"); break; } const up = path.dirname(d); if (up === d) { console.log("no"); break; } d = up; }
+  ' "$dir")
+  case "$trusted_flag" in
+    yes) ;;
+    no) stop "Claude has not been told to trust $dir, so it would ignore .claude/settings.json (allow-list and hooks). Run 'claude' here once and accept the trust dialog." ;;
+    *) echo "warning: could not read ~/.claude.json to check workspace trust; the run stops if Claude reports it." ;;
+  esac
 }
 
 fingerprint() {

@@ -18,6 +18,7 @@
     "check": "npm run typecheck && npm run lint && npm test && npm run validate",
     "check:full": "npm run check && npm run e2e",
     "factory:status": "node scripts/factory/status.ts",
+    "factory:trace": "node scripts/factory/trace.ts",
     "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {

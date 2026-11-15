@@ -14,6 +14,7 @@ export default {
     'scripts/factory/tickets.ts',
     'scripts/factory/bash-policy.ts',
     'scripts/factory/mutation.ts',
+    'scripts/factory/trace-summary.ts',
   ],
   coverageAnalysis: 'perTest',
   reporters: ['clear-text', 'progress', 'html', 'json'],
