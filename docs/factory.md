@@ -89,6 +89,28 @@ These checks were tested against a fake agent that tampers with its acceptance c
 test behind `--no-verify`, forges an override trailer, and guts the guard itself: each run stopped
 with the right reason, and an honest run passed.
 
+The loop was then run for real on ticket 01 (fetch Surah Yusuf). Each early run stopped safely
+on a gap in the factory, not the agent, and each gap became a fix:
+
+- the prompt was swallowed by a command-line flag (now sent on stdin);
+- Claude ignored the allow-list in an untrusted folder (now checked before starting);
+- read-only commands like `shasum` were denied, and the agent stopped instead of working around it
+  (now allowed; writing files through the shell, e.g. `cat > file`, stays denied).
+
+The fourth run finished: four reviewers (spec and faith needed a second round), a brief with one
+real accuracy question for the human (Tanzil puts the basmala in front of 12:1), all runner checks
+passing, and 100% of mutants caught on the changed lines, for about $1.30 and 4 minutes.
+
+### When a run stops
+
+`afk.sh` prints why and the agent's last message. Then:
+
+1. `npm run factory:trace` shows what the agent did and anything that was denied.
+2. Fix the **system** (prompt, allow-list, ticket), not the code, and commit that fix.
+3. If the agent left uncommitted work that passes `npm run check`, commit it as WIP so the next
+   iteration continues from it; otherwise `git restore` it. The ticket stays `in-progress`, and the
+   next run picks it up where it stopped.
+
 ## 3. Brakes (automated checks)
 
 Each layer catches what the previous one missed. All are deterministic; none rely on the agent
