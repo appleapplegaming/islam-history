@@ -10,7 +10,7 @@ against real Quran data.
 **Blocked by:** None (can start immediately)
 
 **Status:** in-progress
-**Started at:** 35a9cbd1fd074de6c7f20008506f39ce013030d7
+**Started at:** 85cea54
 
 **Seams:** the pure function that turns the downloaded Tanzil text into the JSON shape (unit-tested
 with a small fixture); the script itself is a thin IO wrapper.
