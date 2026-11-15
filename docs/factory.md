@@ -123,6 +123,9 @@ and each looks at one thing only, so one concern cannot hide another (Matt's "tw
 | `faith-reviewer` | Religious rules, and is every narrative claim supported by its ayat? | `CLAUDE.md`, `data/quran/`, fetched tafsir |
 | `test-auditor` | Would the tests notice if the code were wrong? Runs mutation testing on the changed lines, judges each survivor, checks the browser test covers the screen change. | the diff, Stryker |
 
+All four run on Sonnet at medium effort (`model` and `effort` in each agent's frontmatter), which
+keeps a review round cheap; change it there if a reviewer starts missing things.
+
 `CODING_STANDARDS.md` is read only by reviewers (implementers already carry a lot of context).
 
 ## 5. Human review: the review brief

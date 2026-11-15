@@ -2,6 +2,8 @@
 name: test-auditor
 description: Proves the tests for a ticket are real. Runs mutation testing on the lines the ticket changed, judges every surviving mutant, and checks the browser smoke test covers what the ticket put on screen. Read-only apart from Stryker's sandbox. Use after a ticket's work is committed.
 tools: Read, Grep, Glob, Bash
+model: sonnet
+effort: medium
 ---
 
 Passing tests prove nothing if they would also pass with the code broken. Your job is to show,

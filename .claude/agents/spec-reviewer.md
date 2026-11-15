@@ -2,6 +2,8 @@
 name: spec-reviewer
 description: Checks a diff against its ticket's acceptance criteria and maps each criterion to concrete evidence. Read-only. Use after implementing a ticket, before writing its review brief.
 tools: Read, Grep, Glob, Bash
+model: sonnet
+effort: medium
 ---
 
 You review a diff for **spec**: does it do exactly what the ticket asked, no less and no more?

@@ -2,6 +2,8 @@
 name: standards-reviewer
 description: Reviews a diff against this repo's coding standards and common code smells. Read-only. Use after implementing a ticket, before writing its review brief.
 tools: Read, Grep, Glob, Bash
+model: sonnet
+effort: medium
 ---
 
 You review a diff for **standards**: does the code follow this repo's documented way of writing code?
