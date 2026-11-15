@@ -9,7 +9,7 @@ const input: FetchSurahInput = {
   translationUrl: 'https://example.test/en',
 };
 const sources: Record<string, string> = {
-  'https://example.test/ar': '12|1|AR one\n12|2|AR two\n# Licence\n',
+  'https://example.test/ar': '1|1|BISM\n12|1|BISM AR one\n12|2|AR two\n# Licence\n',
   'https://example.test/en': '12|1|EN one\n12|2|EN two\n',
 };
 
@@ -35,8 +35,9 @@ describe('fetchSurah', () => {
   it('writes the surah JSON and the licence, and returns the ayah count', async () => {
     const { written, deps } = harness();
     expect(await fetchSurah(input, deps)).toBe(2);
-    expect(written.map(([name]) => name)).toEqual(['surah-012.json', 'LICENSE']);
-    expect(written[1]?.[1]).toBe('Licence\n');
+    expect(written.map(([name]) => name)).toEqual(['surah-012.json', 'basmala.json', 'LICENSE']);
+    expect(JSON.parse(written[1]?.[1] ?? '')).toEqual({ source: 'Tanzil 1:1', arabic: 'BISM' });
+    expect(written[2]?.[1]).toBe('Licence\n');
     expect(JSON.parse(written[0]?.[1] ?? '')).toEqual({
       surah: 12,
       ayat: [
@@ -51,7 +52,7 @@ describe('fetchSurah', () => {
       'https://example.test/en': '12|1|EN one\n12|2|EN two\n# Translation terms\n',
     });
     await fetchSurah(input, deps);
-    expect(written[1]?.[1]).toBe('Licence\n\nTranslation terms\n');
+    expect(written[2]?.[1]).toBe('Licence\n\nTranslation terms\n');
   });
 
   it('produces byte-identical output when run twice', async () => {
@@ -75,7 +76,7 @@ describe('fetchSurah', () => {
   });
 
   it('writes nothing when the licence notice is missing', async () => {
-    const { written, deps } = harness({ 'https://example.test/ar': '12|1|AR one\n12|2|AR two\n' });
+    const { written, deps } = harness({ 'https://example.test/ar': '1|1|BISM\n12|1|BISM AR one\n12|2|AR two\n' });
     await expect(fetchSurah(input, deps)).rejects.toThrow(/licence/);
     expect(written).toEqual([]);
   });

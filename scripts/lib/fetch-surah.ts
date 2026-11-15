@@ -1,6 +1,6 @@
 // Orchestration of the Quran fetch with its IO injected, so "writes nothing on failure" and
 // "same input gives the same bytes" can be tested without a network or a disk.
-import { buildSurahJson, extractLicence, findLicence } from './tanzil.ts';
+import { buildSurahJson, extractBasmala, extractLicence, findLicence } from './tanzil.ts';
 
 export interface FetchSurahDeps {
   download: (url: string) => Promise<string>;
@@ -34,6 +34,7 @@ export async function fetchSurah(input: FetchSurahInput, deps: FetchSurahDeps): 
       ? extractLicence(arabic)
       : `${extractLicence(arabic)}\n${translationLicence}`;
   await deps.write(input.fileName, `${JSON.stringify(surah, null, 2)}\n`);
+  await deps.write('basmala.json', `${JSON.stringify({ source: 'Tanzil 1:1', arabic: extractBasmala(arabic) }, null, 2)}\n`);
   await deps.write('LICENSE', licence);
   return surah.ayat.length;
 }

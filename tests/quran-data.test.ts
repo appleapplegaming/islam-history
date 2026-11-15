@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import surah from '../data/quran/surah-012.json';
+import basmala from '../data/quran/basmala.json';
 import licence from '../data/quran/LICENSE?raw';
 
 describe('data/quran/surah-012.json', () => {
@@ -15,6 +16,11 @@ describe('data/quran/surah-012.json', () => {
       expect(ayah.arabic).toBe(ayah.arabic.trim());
       expect(ayah.translation).toBe(ayah.translation.trim());
     }
+  });
+
+  it('does not start 12:1 with the basmala (the text of 1:1)', () => {
+    expect(basmala.arabic).not.toBe('');
+    expect(surah.ayat[0]?.arabic.startsWith(basmala.arabic)).toBe(false);
   });
 
   it('ships with the Tanzil licence notice and the translation attribution', () => {

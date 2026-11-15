@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { buildSurahJson, extractLicence, findLicence, parseTanzilLines } from '../scripts/lib/tanzil.ts';
 
-const arabic = ['12|1|AR one', '12|2|AR two', '13|1|AR other surah', '#', '# licence notice'].join('\n');
+const arabic = ['1|1|BISM', '12|1|BISM AR one', '12|2|AR two', '13|1|AR other surah', '#', '# licence notice'].join('\n');
 const english = ['12|1|EN one', '12|2|EN two', '13|1|EN other surah', '#', '# licence notice'].join('\n');
 
 describe('parseTanzilLines', () => {
   it('keeps only the requested surah, in ayah order', () => {
     expect(parseTanzilLines(arabic, 12)).toEqual([
-      { number: 1, text: 'AR one' },
+      { number: 1, text: 'BISM AR one' },
       { number: 2, text: 'AR two' },
     ]);
   });
@@ -68,6 +68,24 @@ describe('findLicence', () => {
 });
 
 describe('buildSurahJson', () => {
+  it('strips the 1:1 text (the basmala) from the start of 12:1, and only there', () => {
+    const raw = '1|1|BISM\n12|1|BISM AR one\n12|2|BISM AR two';
+    const en = '12|1|EN one\n12|2|EN two';
+    expect(buildSurahJson({ arabic: raw, translation: en, surah: 12, expectedAyat: 2 }).ayat).toEqual([
+      { number: 1, arabic: 'AR one', translation: 'EN one' },
+      { number: 2, arabic: 'BISM AR two', translation: 'EN two' },
+    ]);
+  });
+
+  it('fails when 12:1 does not start with the text of 1:1 followed by whitespace', () => {
+    const en = '12|1|EN one';
+    const build = (raw: string) => () => buildSurahJson({ arabic: raw, translation: en, surah: 12, expectedAyat: 1 });
+    expect(build('1|1|BISM\n12|1|AR one')).toThrow(/12:1 does not start with the text of 1:1/);
+    expect(build('1|1|BISM\n12|1|BISMAR one')).toThrow(/12:1 does not start with/);
+    expect(build('1|1|BISM\n12|1|BISM')).toThrow(/12:1 does not start with/);
+    expect(build('12|1|BISM AR one')).toThrow(/1:1 is missing/);
+  });
+
   it('joins Arabic and translation by ayah number', () => {
     expect(buildSurahJson({ arabic, translation: english, surah: 12, expectedAyat: 2 })).toEqual({
       surah: 12,
@@ -88,13 +106,13 @@ describe('buildSurahJson', () => {
   });
 
   it('fails when ayat are not numbered 1..n', () => {
-    const gap = '12|1|AR one\n12|3|AR three';
+    const gap = '1|1|BISM\n12|1|BISM AR one\n12|3|AR three';
     const en = '12|1|EN one\n12|3|EN three';
     expect(() => buildSurahJson({ arabic: gap, translation: en, surah: 12, expectedAyat: 2 })).toThrow(/ayah 2/);
   });
 
   it('fails when the Arabic has a gap but the translation is numbered 1..n', () => {
-    const gap = '12|1|AR one\n12|3|AR three';
+    const gap = '1|1|BISM\n12|1|BISM AR one\n12|3|AR three';
     expect(() => buildSurahJson({ arabic: gap, translation: english, surah: 12, expectedAyat: 2 })).toThrow(/ayah 2/);
   });
 
@@ -104,7 +122,7 @@ describe('buildSurahJson', () => {
   });
 
   it('fails when any text is empty', () => {
-    const empty = '12|1|AR one\n12|2|   ';
+    const empty = '1|1|BISM\n12|1|BISM AR one\n12|2|   ';
     expect(() => buildSurahJson({ arabic: empty, translation: english, surah: 12, expectedAyat: 2 })).toThrow(/empty/);
   });
 });

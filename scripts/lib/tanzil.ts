@@ -51,13 +51,36 @@ function checkAyat(label: string, ayat: TanzilAyah[], expected: number): void {
   });
 }
 
+/** Tanzil's text of 1:1, which is the basmala. Taken from the data, never typed. */
+export function extractBasmala(raw: string): string {
+  const first = parseTanzilLines(raw, 1).find((ayah) => ayah.number === 1);
+  if (first === undefined) throw new Error('Surah check failed: 1:1 is missing from the Arabic, so the basmala is unknown');
+  return first.text;
+}
+
+/** Tanzil prefixes the basmala to the first ayah of a surah; it is not part of that ayah. */
+function withoutBasmala(surah: number, ayat: TanzilAyah[], basmala: string): TanzilAyah[] {
+  return ayat.map((ayah) => {
+    if (ayah.number !== 1) return ayah;
+    const rest = ayah.text.slice(basmala.length);
+    if (!ayah.text.startsWith(basmala) || rest === rest.trimStart()) {
+      throw new Error(`Surah check failed: ${surah}:1 does not start with the text of 1:1 followed by whitespace`);
+    }
+    return { number: 1, text: rest.trimStart() };
+  });
+}
+
 export function buildSurahJson(input: {
   arabic: string;
   translation: string;
   surah: number;
   expectedAyat: number;
 }): SurahJson {
-  const arabic = parseTanzilLines(input.arabic, input.surah);
+  const arabic = withoutBasmala(
+    input.surah,
+    parseTanzilLines(input.arabic, input.surah),
+    extractBasmala(input.arabic),
+  );
   const translation = parseTanzilLines(input.translation, input.surah);
   checkAyat('Arabic', arabic, input.expectedAyat);
   checkAyat('translation', translation, input.expectedAyat);
