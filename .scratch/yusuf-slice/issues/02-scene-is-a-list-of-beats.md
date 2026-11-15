@@ -9,7 +9,7 @@ chapter content can never be committed. No chapter file exists yet, so nothing e
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-info
+**Status:** ready-for-agent
 **Started at:** 76aea9b
 
 **Seams:** `validateChapter()`.
@@ -46,6 +46,7 @@ Also out of date, and also a guardrail: `.claude/rules/content.md` still lists `
 required scene field. It should say `beats` once this lands.
 
 **Questions:**
+
 1. Will you approve the guardrail change to `src/content/validate.ts` for this ticket? Some ways to do it:
    (a) you finish it yourself and commit with `FACTORY_ALLOW=guardrails`, (b) the agent builds the whole
    change and leaves it uncommitted for you to review and commit with the override, or (c) you move the
@@ -79,6 +80,7 @@ so I applied the `types.ts` and test parts by hand, confirmed they go red as exp
 the working tree. `02-wip.patch` is untouched and still the starting point.)
 
 **Question:**
+
 1. Please remove those four `Edit(/src/content/...)` lines from `permissions.ask` in
    `.claude/settings.json` (so the permissions match the guard after 1fde0dd), then set this ticket
    back to `ready-for-agent`. If you'd rather keep `refs.ts`, `honorifics.ts` and `credits.ts` behind
