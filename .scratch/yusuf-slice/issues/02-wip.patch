@@ -1,0 +1,99 @@
+diff --git a/src/content/types.ts b/src/content/types.ts
+index 405b0af..07c0af6 100644
+--- a/src/content/types.ts
++++ b/src/content/types.ts
+@@ -6,10 +6,28 @@ export interface TafsirNote {
+   note: string;
+ }
+ 
++/** A beat of narration: text that is not Quran text (see GLOSSARY.md). */
++export interface NarrationBeat {
++  kind: 'narration';
++  text: string;
++}
++
++/**
++ * A beat that shows one whole ayah. It carries only the ref (a single ayah, e.g. "12:19");
++ * the Arabic and English are resolved from data/quran/, never stored in content.
++ */
++export interface AyahBeat {
++  kind: 'ayah';
++  ref: string;
++}
++
++export type Beat = NarrationBeat | AyahBeat;
++
+ export interface Scene {
+   id: string;
+   title: string;
+-  narration: string;
++  /** The scene told in order, one screen per beat. Never empty. */
++  beats: Beat[];
+   refs: string[];
+   certainty: Certainty;
+   /** Required when certainty is 'hadith': collection and number, e.g. "Sahih al-Bukhari 3390". */
+diff --git a/src/content/validate.ts b/src/content/validate.ts
+index 848e39c..cc35f4e 100644
+--- a/src/content/validate.ts
++++ b/src/content/validate.ts
+@@ -50,9 +50,11 @@ export function validateChapter(file: string, chapter: unknown, index: QuranInde
+       errors.push(`${where}: not an object`);
+       return;
+     }
+-    for (const field of ['id', 'title', 'narration'] as const) {
++    for (const field of ['id', 'title'] as const) {
+       if (!isNonEmptyString(scene[field])) errors.push(`${where}: missing "${field}"`);
+     }
++    const beats = scene.beats;
++    if (!Array.isArray(beats) || beats.length === 0) errors.push(`${where}: has no beats`);
+ 
+     const refs = scene.refs;
+     if (!Array.isArray(refs) || refs.length === 0) {
+diff --git a/tests/validate.test.ts b/tests/validate.test.ts
+index 0134eb8..e5259e1 100644
+--- a/tests/validate.test.ts
++++ b/tests/validate.test.ts
+@@ -4,8 +4,17 @@ import { findDisallowedArabic, validateChapter } from '../src/content/validate.t
+ const index = new Map([[12, 111]]);
+ const ARABIC_LETTERS = String.fromCodePoint(0x0627, 0x0628, 0x062a); // alif, ba, ta
+ 
++const VALID_BEATS = [
++  { kind: 'narration', text: 'N' },
++  { kind: 'ayah', ref: '12:4' },
++];
++
+ function scene(overrides: Record<string, unknown> = {}) {
+-  return { id: 's1', title: 'T', narration: 'N', refs: ['12:4'], certainty: 'quran', ...overrides };
++  return { id: 's1', title: 'T', beats: VALID_BEATS, refs: ['12:4'], certainty: 'quran', ...overrides };
++}
++
++function errorsFor(overrides: Record<string, unknown>) {
++  return validateChapter('y.json', { scenes: [scene(overrides)] }, index);
+ }
+ 
+ describe('findDisallowedArabic', () => {
+@@ -60,7 +69,7 @@ describe('validateChapter', () => {
+     expect(errors).toEqual([
+       'y.json scene #0: missing "id"',
+       'y.json scene #0: missing "title"',
+-      'y.json scene #0: missing "narration"',
++      'y.json scene #0: has no beats',
+       'y.json scene #0: certainty must be one of quran, hadith, tradition',
+     ]);
+   });
+@@ -102,6 +111,15 @@ describe('validateChapter', () => {
+     ]);
+   });
+ 
++  it('fails when a scene has no beats', () => {
++    expect(errorsFor({ beats: [] })).toEqual(['y.json scene "s1": has no beats']);
++    expect(errorsFor({ beats: 'N' })).toEqual(['y.json scene "s1": has no beats']);
++  });
++
++  it('no longer reads a scene-level narration field', () => {
++    expect(errorsFor({ beats: undefined, narration: 'N' })).toEqual(['y.json scene "s1": has no beats']);
++  });
++
+   it('fails when tafsirNotes is not an array', () => {
+     expect(validateChapter('y.json', { scenes: [scene({ tafsirNotes: 'Ibn Kathir' })] }, index)).toEqual([
+       'y.json scene "s1": "tafsirNotes" must be an array',

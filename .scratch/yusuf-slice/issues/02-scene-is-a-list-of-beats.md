@@ -9,7 +9,7 @@ chapter content can never be committed. No chapter file exists yet, so nothing e
 
 **Blocked by:** None (can start immediately)
 
-**Status:** in-progress
+**Status:** needs-info
 **Started at:** 21ea02424d8a50a4c4e2e46ba686633eea3afca8
 
 **Seams:** `validateChapter()`.
@@ -22,3 +22,34 @@ chapter content can never be committed. No chapter file exists yet, so nothing e
 - [ ] Every report names the file, the scene and the beat's position
 - [ ] A valid scene with both beat kinds passes with no errors, and the existing checks (refs, certainty, hadith, tradition, tafsir notes) still behave as before
 - [ ] `npm run check` passes
+
+## Comments
+
+**Agent, 2026-11-15: blocked on a guardrail file. A human needs to approve.**
+
+The ticket's only seam, `validateChapter()`, is in `src/content/validate.ts`. That file is in
+`GUARDRAIL_PATHS` (`scripts/factory/guard-rules.ts:46`), so the guard refuses any commit that touches it:
+
+```
+Guard failed with 1 violation(s):
+  - [guardrails] src/content/validate.ts: changes a file that enforces quality
+```
+
+`docs/factory.md` says only a human may override this with `FACTORY_ALLOW=guardrails`, so I stopped
+rather than work around it. The ticket can't be done without changing that file.
+
+Work so far is saved, uncommitted, in `.scratch/yusuf-slice/issues/02-wip.patch` (first TDD step, green
+locally: `Scene.narration` replaced by `beats: Beat[]` with `NarrationBeat | AyahBeat` types, the
+validator reports `has no beats`, and tests are updated plus 2 new ones). The working tree was reset to HEAD.
+
+Also out of date, and also a guardrail: `.claude/rules/content.md` still lists `narration` as a
+required scene field. It should say `beats` once this lands.
+
+**Questions:**
+1. Will you approve the guardrail change to `src/content/validate.ts` for this ticket? Some ways to do it:
+   (a) you finish it yourself and commit with `FACTORY_ALLOW=guardrails`, (b) the agent builds the whole
+   change and leaves it uncommitted for you to review and commit with the override, or (c) you move the
+   beat checks into a new non-guardrail module (e.g. `src/content/beats.ts`) that `validateChapter()` calls.
+   That still needs a one-time guardrail edit to wire it in, and the new module would then probably
+   need adding to `GUARDRAIL_PATHS`.
+2. Should `.claude/rules/content.md` be updated in the same approved commit?
