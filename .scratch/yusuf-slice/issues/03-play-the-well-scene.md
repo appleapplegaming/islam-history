@@ -11,7 +11,7 @@ Tanzil licence). Placeholder art only, in the style of the map. Spec: `.scratch/
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** needs-info
 
 **Seams:** the scene playthrough module (pure, no Phaser): start a scene from chapter content and
 Quran data, current beat already resolved, `advance()`, finished, unlocked refs. The browser smoke
@@ -28,3 +28,33 @@ test through the existing debug probe.
 - [ ] The scene publishes its state (scene id, current beat, refs) through the debug probe
 - [ ] Browser smoke test: map → Yusuf marker → both beats → back on the map, with no console errors, screenshots of each beat
 - [ ] `npm run check:full` passes
+
+## Comments
+
+### Agent, 2026-11-15: blocked on the Amiri Quran font file
+
+One criterion needs Amiri Quran saved in `assets/fonts/`. I can't get the file from this session:
+
+- It is not anywhere on the machine (checked `node_modules/`, `~/Library/Fonts/`, `~/Documents/GitHub/`).
+- `curl` and other network tools are denied, and no allowed script downloads fonts.
+  `scripts/fetch-quran.ts` only downloads Quran data. I could write a new download script under
+  `scripts/factory/` because `node scripts/factory/*` is allowed, but that would get around the
+  network denial, so I haven't.
+
+Nothing else is blocking. I haven't started building, so there are no code changes.
+
+**What I need (pick one):**
+
+1. **You add the font (simplest).** Download `AmiriQuran.ttf` from the official Amiri release
+   (https://github.com/aliftype/amiri/releases) and save it as `assets/fonts/AmiriQuran.ttf`.
+   Also add the release's `OFL.txt` as `assets/fonts/OFL.txt`. Commit both. I will add the
+   `assets/CREDITS.md` rows (Amiri Quran, Khaled Hosny / aliftype, SIL OFL 1.1) when I build.
+   Note: `npm run validate` needs every asset listed in `assets/CREDITS.md`. If you commit only
+   the files, validate will fail until the rows exist, so either add the rows in the same commit
+   or tell me to add them first.
+2. **Allow a download script.** Approve a new `scripts/fetch-font.ts` that downloads that
+   release file, plus a matching `Bash(node scripts/fetch-font.ts*)` rule in
+   `.claude/settings.json`. This adds a script but no npm dependency.
+
+Once the font is in the repo (option 1) or the script is allowed (option 2), set this back to
+`ready-for-agent`.
