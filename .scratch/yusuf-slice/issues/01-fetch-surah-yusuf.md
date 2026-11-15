@@ -9,7 +9,7 @@ against real Quran data.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** in-progress
+**Status:** needs-review
 **Started at:** 8584d57
 
 **Seams:** the pure function that turns the downloaded Tanzil text into the JSON shape (unit-tested
@@ -51,37 +51,36 @@ Seams say: files there are mutation-tested, and new code needs a 90% score.
 
 ## Review brief
 
-**Result:** `node scripts/fetch-quran.ts` downloads Surah Yusuf (Tanzil Uthmani + Sahih International) and writes `data/quran/surah-012.json` (111 ayat) and `data/quran/LICENSE`; `npm run validate` can now check refs against real data.
-**Commits:** 8584d57..38d7401 (7 commits; the WIP commit 807ab45 from a stopped iteration is covered by the reviews below)
+**Result:** `node scripts/fetch-quran.ts` now writes 12:1 without the basmala, taking the basmala from Tanzil's own 1:1 text; the script fails (writing nothing) if 12:1 does not start with it plus whitespace.
+**Commits:** 8584d57..afa107e (12 commits in the range; this feedback round is f6144a3, fe0af65, afa107e)
 
 ### Acceptance criteria
 | Criterion | Evidence (would fail without this change) |
 | --- | --- |
-| 111 ayat, numbered 1 to 111 | `tests/quran-data.test.ts > is Surah 12 with exactly 111 ayat numbered 1 to 111`; `tests/tanzil.test.ts > buildSurahJson > fails when the ayah count is not the expected one` |
-| Non-empty, unaltered text | `tests/quran-data.test.ts > has non-empty Arabic and translation...`; `tests/tanzil.test.ts > keeps pipes inside the text and trims only surrounding whitespace` |
-| LICENSE has the Tanzil notice | `tests/quran-data.test.ts > ships with the Tanzil licence notice...`; `tests/tanzil.test.ts > extractLicence` |
-| Twice gives identical files | `tests/fetch-surah.test.ts > produces byte-identical output when run twice`; I also ran the script 3 times and the sha1 of both files did not change |
-| Clear failure, nothing written | `tests/fetch-surah.test.ts > writes nothing when a download fails / the ayah count is wrong / the licence notice is missing` |
-| No Quran text outside `data/quran/` | `npm run validate` (Arabic-outside-data rule): passes |
+| Basmala stripped from 12:1 only | `tests/tanzil.test.ts > buildSurahJson > strips the 1:1 text (the basmala) from the start of 12:1, and only there` |
+| Fails clearly if 12:1 does not start with 1:1's text + whitespace | `tests/tanzil.test.ts > ... > fails when 12:1 does not start with the text of 1:1 followed by whitespace` (no prefix, no whitespace, nothing after, 1:1 missing) |
+| Basmala never typed | `extractBasmala` reads Tanzil's 1:1; fixtures use placeholders (`BISM`); `npm run validate` (Arabic-outside-data rule) passes |
+| Data test: 12:1 no longer starts with 1:1's text | `tests/quran-data.test.ts > does not start 12:1 with the basmala (the text of 1:1)` |
+| Open questions updated | `docs/open-questions.md`: basmala and spot-check items removed |
+| Earlier criteria (111 ayat, unaltered text, LICENSE, idempotent, no write on failure) | unchanged; their tests still pass. I re-ran the script: sha1 of all three data files identical between runs |
 
 **Screenshots:** no screen change
 
 ### Automated review
-- Spec: pass in round 2. Round 1 found missing evidence (data test, no-write on failure, idempotence); fixed in 38d7401.
-- Standards: pass. Minor smells left on purpose: `SURAH`/filename are separate constants (one surah only, so a descriptor would be speculative).
-- Faith and accuracy: pass. No depiction, no prophet voice, no hand-written Quran text; the only Quran text is the generated JSON. No narrative claims. The reviewer read ayat 49-60 and found no corruption but could NOT compare the whole file to Tanzil.
-- Tests: mutation 98.8% of 83 on changed lines. One survivor (`scripts/lib/tanzil.ts:41`, `/^# ?/` to `/# ?/`) is equivalent: the line already starts with `#` and the regex has no `g` flag. e2e: no screen change (`npm run e2e` still passes).
+- Spec: `changes-needed` in round 1, no blockers. It flagged (a) the new `data/quran/basmala.json` as unrequested and (b) the data test comparing against that file rather than a 1:1 text file. Both are my decision below; not re-run.
+- Standards: pass. Smells left on purpose: `basmala.json` and `LICENSE` names hard-coded in `fetch-surah.ts` (one surah only); `extractLicence`/`findLicence` naming.
+- Faith and accuracy: pass. No depiction, no prophet voice, no hand-written Quran text; no narrative claims. Reviewer saw 12:1 start at the Alif-Lam-Ra letters with the translation matching, and 12:111 complete; could not compare all 111 ayat to Tanzil (you accepted the spot check).
+- Tests: mutation 99.2% of 123 on changed lines (auditor); one equivalent survivor, `scripts/lib/tanzil.ts:41` (`/^# ?/` to `/# ?/`: the line already starts with `#`, no `g` flag). e2e: no screen change; `npm run check:full` passes.
 
 ### Decisions I made
-- Moved the script's orchestration into `scripts/lib/fetch-surah.ts` (IO injected) so "writes nothing on failure" and idempotence are testable; `scripts/fetch-quran.ts` is now only wiring.
-- `data/quran/LICENSE` is the Arabic file's Tanzil notice plus the translation file's own header (Saheeh International, en.sahih, "Last Update: April 24, 2011", "Source: Tanzil.net"). The `# ` comment markers are stripped; the wording is unchanged.
-- Tests read the data with a JSON import and `?raw` so the web tsconfig needs no Node types.
+- The data test needs 1:1's text, but only Surah 12 is in `data/`. The script therefore also writes `data/quran/basmala.json` (`{source, arabic}`, Tanzil's 1:1). `validate` only reads `surah-NNN.json`, so it is ignored there. Delete it if you prefer another way to test this.
+- The strip applies to ayah 1 of whichever surah is built (would not work for surah 1 itself); fine for the current single-surah scope.
 
 ### Open questions and risks
-- Recorded in `docs/open-questions.md`: ayah 1's Arabic starts with the basmala but its translation does not (kept unaltered); the translation header holds attribution only, not usage terms; and the JSON has not been compared by a person with the live Tanzil pages.
-- The in-game credits must link to tanzil.net (the LICENSE text has no link).
+- Tanzil's licence says the text must not be changed; the basmala removal is your explicit ruling, so it is a deliberate exception. Consider noting it in the in-game credits.
+- Translation licence question remains in `docs/open-questions.md`; credits must link to tanzil.net.
 
 ### Try it yourself (about 2 minutes)
 1. `npm run dev`, open the printed URL (no visible change expected)
 2. `node scripts/fetch-quran.ts`, then `git status`: expect "Wrote 111 ayat..." and no modified files
-3. Open `data/quran/surah-012.json` and compare 12:1, 12:4 and 12:111 with tanzil.net/#12:1 etc.; this is the check the reviewers could not do.
+3. Open `data/quran/surah-012.json`: ayah 1's `arabic` should start with the letters only, not the basmala (compare with `data/quran/basmala.json`), and its `translation` should be unchanged.
