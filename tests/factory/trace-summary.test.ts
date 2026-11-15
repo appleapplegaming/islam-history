@@ -161,3 +161,14 @@ describe('formatTraceSummary', () => {
     );
   });
 });
+
+describe('summariseTrace with several result events', () => {
+  it('adds up turns and time across idle periods and keeps the latest cost and message', () => {
+    const resumed = [
+      JSON.stringify({ type: 'result', num_turns: 38, duration_ms: 103_767, total_cost_usd: 0.9, result: 'Reviewers running.' }),
+      JSON.stringify({ type: 'result', num_turns: 1, duration_ms: 1_351, total_cost_usd: 1.0, result: 'Standards passed.' }),
+      JSON.stringify({ type: 'result', num_turns: 9, duration_ms: 25_448, total_cost_usd: 1.3, result: 'TICKET DONE: 01' }),
+    ].join('\n');
+    expect(summariseTrace(resumed)).toMatchObject({ turns: 48, minutes: 2.2, costUsd: 1.3, finalMessage: 'TICKET DONE: 01' });
+  });
+});

@@ -52,6 +52,7 @@ export function summariseTrace(log: string): TraceSummary {
   const summary: TraceSummary = { commands: [], filesChanged: [], subagents: [], denied: [], failedCommands: 0 };
   const files = new Set<string>();
   const calls = new Map<string, { label: string; isCommand: boolean }>();
+  let durationMs: number | undefined;
   for (const raw of log.split('\n')) {
     if (!raw.startsWith('{')) continue;
     let event: TraceEvent;
@@ -61,9 +62,11 @@ export function summariseTrace(log: string): TraceSummary {
       continue; // a truncated last line when the run was killed; nothing to summarise in it
     }
     if (event.type === 'result') {
-      summary.turns = event.num_turns;
-      summary.costUsd = event.total_cost_usd;
-      if (event.duration_ms !== undefined) summary.minutes = Math.round(event.duration_ms / 6000) / 10;
+      // One result per time the agent went idle (e.g. while background reviewers ran): turns and
+      // time add up, the cost is already a running total, the last message is the final one.
+      if (event.num_turns !== undefined) summary.turns = (summary.turns ?? 0) + event.num_turns;
+      if (event.total_cost_usd !== undefined) summary.costUsd = event.total_cost_usd;
+      if (event.duration_ms !== undefined) durationMs = (durationMs ?? 0) + event.duration_ms;
       if (event.result !== undefined) summary.finalMessage = firstLine(event.result, 300);
       continue;
     }
@@ -96,6 +99,7 @@ export function summariseTrace(log: string): TraceSummary {
     }
   }
   summary.filesChanged = [...files].toSorted();
+  if (durationMs !== undefined) summary.minutes = Math.round(durationMs / 6000) / 10;
   return summary;
 }
 
