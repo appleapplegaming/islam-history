@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSurahJson, parseTanzilLines } from '../scripts/lib/tanzil.ts';
+import { buildSurahJson, extractLicence, parseTanzilLines } from '../scripts/lib/tanzil.ts';
 
 const arabic = ['12|1|AR one', '12|2|AR two', '13|1|AR other surah', '#', '# licence notice'].join('\n');
 const english = ['12|1|EN one', '12|2|EN two', '13|1|EN other surah', '#', '# licence notice'].join('\n');
@@ -23,6 +23,17 @@ describe('parseTanzilLines', () => {
   it('rejects a malformed line with its line number', () => {
     expect(() => parseTanzilLines('12|1|ok\nnot a line', 12)).toThrow(/line 2/);
     expect(() => parseTanzilLines('12|x|ok', 12)).toThrow(/line 1/);
+  });
+});
+
+describe('extractLicence', () => {
+  it('returns the comment block with the leading "# " removed, as published', () => {
+    const raw = '12|1|AR one\n# Copyright\n#\n# Terms apply\r\n';
+    expect(extractLicence(raw)).toBe('Copyright\n\nTerms apply\n');
+  });
+
+  it('fails when the file carries no licence notice', () => {
+    expect(() => extractLicence('12|1|AR one')).toThrow(/licence/);
   });
 });
 

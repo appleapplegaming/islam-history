@@ -27,6 +27,17 @@ export function parseTanzilLines(raw: string, surah: number): TanzilAyah[] {
   return ayat;
 }
 
+/** The '#' comment block of a Tanzil file (its licence notice), without the comment markers. */
+export function extractLicence(raw: string): string {
+  const lines = raw
+    .split('\n')
+    .map((line) => line.replace(/\r$/, ''))
+    .filter((line) => line.startsWith('#'))
+    .map((line) => line.replace(/^# ?/, ''));
+  if (lines.every((line) => line.trim() === '')) throw new Error('No licence notice found in the Tanzil file');
+  return `${lines.join('\n')}\n`;
+}
+
 function checkAyat(label: string, ayat: TanzilAyah[], expected: number): void {
   if (ayat.length !== expected) {
     throw new Error(`Surah check failed: expected ${expected} ayat but ${label} has ${ayat.length}`);
