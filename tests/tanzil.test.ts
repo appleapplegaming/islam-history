@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSurahJson, extractLicence, findLicence, parseTanzilLines } from '../scripts/lib/tanzil.ts';
+import { buildSurahJson, extractBasmala, extractLicence, findLicence, parseTanzilLines } from '../scripts/lib/tanzil.ts';
 
 const arabic = ['1|1|BISM', '12|1|BISM AR one', '12|2|AR two', '13|1|AR other surah', '#', '# licence notice'].join('\n');
 const english = ['12|1|EN one', '12|2|EN two', '13|1|EN other surah', '#', '# licence notice'].join('\n');
@@ -64,6 +64,12 @@ describe('findLicence', () => {
   it('returns undefined when there is no notice, and the notice when there is one', () => {
     expect(findLicence('12|1|AR one\n')).toBeUndefined();
     expect(findLicence('12|1|AR one\n# Terms\n')).toBe('Terms\n');
+  });
+});
+
+describe('extractBasmala', () => {
+  it('returns the text of ayah 1 of surah 1, wherever it sits in the file', () => {
+    expect(extractBasmala('1|2|SECOND\n1|1|BISM\n2|1|OTHER')).toBe('BISM');
   });
 });
 
