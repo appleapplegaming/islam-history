@@ -9,7 +9,8 @@ chapter content can never be committed. No chapter file exists yet, so nothing e
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** in-progress
+**Started at:** 76aea9b
 
 **Seams:** `validateChapter()`.
 
