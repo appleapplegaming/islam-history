@@ -200,6 +200,18 @@ describe('validateChapter', () => {
     ]);
   });
 
+  it('reports missing scene refs once, without placing ayah beats against them', () => {
+    expect(errorsFor({ refs: '12:4' })).toEqual(['y.json scene "s1": has no refs']);
+    expect(errorsFor({ refs: undefined })).toEqual(['y.json scene "s1": has no refs']);
+  });
+
+  it('does not treat a non-string scene ref as a range when placing an ayah beat', () => {
+    // String(['12:4']) is "12:4", so only the type check keeps this ref from counting.
+    expect(errorsFor({ refs: [['12:4']], beats: [{ kind: 'ayah', ref: '12:5' }] })).toEqual([
+      'y.json scene "s1": ref ["12:4"] is not a string',
+    ]);
+  });
+
   it('names the scene by position when it has no id', () => {
     const errors = validateChapter('y.json', { scenes: [scene({ id: undefined, beats: [{ kind: 'poem' }] })] }, index);
     expect(errors).toEqual(['y.json scene #0: missing "id"', 'y.json scene #0 beat #0: unknown kind "poem", expected narration or ayah']);
