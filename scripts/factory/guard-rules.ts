@@ -42,8 +42,9 @@ const GUARDRAIL_PATHS = [
   /(^|\/)\.gitignore$/, // can hide files from the clean-tree check (at any depth)
   /^factory\//, // the loop runner and prompt
   /^scripts\/factory\//,
+  // The validate script is the gate; the content checks it calls (src/content/) grow with the content
+  // model, so feature tickets may extend them under TDD, mutation testing and the faith-reviewer.
   /^scripts\/validate\.ts$/,
-  /^src\/content\/(validate|honorifics|credits|refs)\.ts$/,
   /^CODING_STANDARDS\.md$/,
   /^package(-lock)?\.json$/, // scripts and dependencies (new dependencies need approval anyway)
   /^tsconfig(\.[\w-]+)?\.json$/,
