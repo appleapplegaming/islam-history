@@ -28,7 +28,18 @@
       "Bash(node scripts/validate.ts*)",
       "Bash(node scripts/fetch-quran.ts*)",
       "Bash(node scripts/factory/*)",
-      "Bash(git restore *)"
+      "Bash(git restore *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(grep *)",
+      "Bash(shasum *)",
+      "Bash(sort *)",
+      "Bash(diff *)",
+      "Bash(cmp *)",
+      "Bash(echo *)",
+      "Bash(pwd)"
     ],
     "ask": [
       "Edit(/.githooks/**)",

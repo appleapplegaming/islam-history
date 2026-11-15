@@ -73,8 +73,11 @@ verify() {
   status=$(node "$trusted/scripts/factory/status.ts" --status "$ticket") || stop "cannot read the status of $ticket"
   case "$status" in
     needs-review) ;;
-    ready-for-human | needs-info) stop "$ticket needs you (status: $status)" ;;
-    *) stop "$ticket ended with status '$status'; the iteration did not finish (see $log)" ;;
+    ready-for-human | needs-info) stop "$ticket needs you (status: $status); see its ## Comments" ;;
+    *)
+      echo "      agent's last words: $(node "$trusted/scripts/factory/trace.ts" "$log" | sed -n 's/^Final message: //p')"
+      stop "$ticket ended with status '$status'; the iteration did not finish (details: npm run factory:trace -- $log)"
+      ;;
   esac
 
   [ "$(git rev-parse HEAD)" != "$before_head" ] || stop "$ticket produced no commits"

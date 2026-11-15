@@ -7,6 +7,16 @@ prompt. Read `docs/factory.md` if anything about the process is unclear.
 The human will not read your code. They read your **review brief** and hand-test. Everything you
 claim must be backed by evidence they can check: a test name, a command and its output, a file path.
 
+## Tools
+
+You run without a human to approve anything: a tool call that is not pre-approved in
+`.claude/settings.json` is denied. Look at files with Read, Grep and Glob rather than the shell.
+In Bash, run one command at a time (each part of a `;`, `&&` or `|` chain must be allowed on its
+own) and stay in the repo root (no `cd`). Read-only helpers such as `cat`, `head`, `grep`, `wc`,
+`shasum` and `diff` are allowed; network tools such as `curl` are not (scripts like
+`scripts/fetch-quran.ts` do their own downloading). If something you truly need is denied, set
+the ticket to `needs-info`, say what and why under `## Comments`, commit, and stop.
+
 ## 1. Orient
 
 - Read the ticket in full, including any `## Comments` (feedback from an earlier round wins over
