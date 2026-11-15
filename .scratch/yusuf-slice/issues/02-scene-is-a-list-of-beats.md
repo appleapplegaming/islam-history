@@ -9,8 +9,7 @@ chapter content can never be committed. No chapter file exists yet, so nothing e
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-info
-**Started at:** 21ea02424d8a50a4c4e2e46ba686633eea3afca8
+**Status:** ready-for-agent
 
 **Seams:** `validateChapter()`.
 
@@ -53,3 +52,8 @@ required scene field. It should say `beats` once this lands.
    That still needs a one-time guardrail edit to wire it in, and the new module would then probably
    need adding to `GUARDRAIL_PATHS`.
 2. Should `.claude/rules/content.md` be updated in the same approved commit?
+
+**Human, 2026-11-15 (answer to 1):** `src/content/{validate,refs,honorifics,credits}.ts` are no
+longer guardrail files (commit 1fde0dd), so this ticket can now be built normally. You can start from
+`02-wip.patch` (apply it with `git apply`, then delete it). Question 2 is still open: `.claude/rules/content.md`
+is still a guardrail, so leave it alone and mention it in the review brief.
