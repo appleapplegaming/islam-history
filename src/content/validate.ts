@@ -50,9 +50,11 @@ export function validateChapter(file: string, chapter: unknown, index: QuranInde
       errors.push(`${where}: not an object`);
       return;
     }
-    for (const field of ['id', 'title', 'narration'] as const) {
+    for (const field of ['id', 'title'] as const) {
       if (!isNonEmptyString(scene[field])) errors.push(`${where}: missing "${field}"`);
     }
+    const beats = scene.beats;
+    if (!Array.isArray(beats) || beats.length === 0) errors.push(`${where}: has no beats`);
 
     const refs = scene.refs;
     if (!Array.isArray(refs) || refs.length === 0) {

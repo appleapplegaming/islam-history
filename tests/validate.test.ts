@@ -4,8 +4,17 @@ import { findDisallowedArabic, validateChapter } from '../src/content/validate.t
 const index = new Map([[12, 111]]);
 const ARABIC_LETTERS = String.fromCodePoint(0x0627, 0x0628, 0x062a); // alif, ba, ta
 
+const VALID_BEATS = [
+  { kind: 'narration', text: 'N' },
+  { kind: 'ayah', ref: '12:4' },
+];
+
 function scene(overrides: Record<string, unknown> = {}) {
-  return { id: 's1', title: 'T', narration: 'N', refs: ['12:4'], certainty: 'quran', ...overrides };
+  return { id: 's1', title: 'T', beats: VALID_BEATS, refs: ['12:4'], certainty: 'quran', ...overrides };
+}
+
+function errorsFor(overrides: Record<string, unknown>) {
+  return validateChapter('y.json', { scenes: [scene(overrides)] }, index);
 }
 
 describe('findDisallowedArabic', () => {
@@ -60,7 +69,7 @@ describe('validateChapter', () => {
     expect(errors).toEqual([
       'y.json scene #0: missing "id"',
       'y.json scene #0: missing "title"',
-      'y.json scene #0: missing "narration"',
+      'y.json scene #0: has no beats',
       'y.json scene #0: certainty must be one of quran, hadith, tradition',
     ]);
   });
@@ -100,6 +109,15 @@ describe('validateChapter', () => {
       'y.json scene "s1": tafsirNotes[0] has no source',
       'y.json scene "s1": tafsirNotes[0] has no ayah',
     ]);
+  });
+
+  it('fails when a scene has no beats', () => {
+    expect(errorsFor({ beats: [] })).toEqual(['y.json scene "s1": has no beats']);
+    expect(errorsFor({ beats: 'N' })).toEqual(['y.json scene "s1": has no beats']);
+  });
+
+  it('no longer reads a scene-level narration field', () => {
+    expect(errorsFor({ beats: undefined, narration: 'N' })).toEqual(['y.json scene "s1": has no beats']);
   });
 
   it('fails when tafsirNotes is not an array', () => {
