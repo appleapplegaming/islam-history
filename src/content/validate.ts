@@ -1,4 +1,4 @@
-import { checkRefExists } from './refs.ts';
+import { type AyahRange, checkRefExists, parseRef } from './refs.ts';
 import type { QuranIndex } from './types.ts';
 
 /**
@@ -29,9 +29,32 @@ export function findDisallowedArabic(text: string): string[] {
 }
 
 const CERTAINTIES = ['quran', 'hadith', 'tradition'];
+const BEAT_KINDS = ['narration', 'ayah'];
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
+}
+
+/** The scene's refs that are well-formed and exist; the bad ones are reported by the refs check. */
+function validRanges(refs: unknown, index: QuranIndex): AyahRange[] {
+  if (!Array.isArray(refs)) return [];
+  return refs.filter((ref): ref is string => typeof ref === 'string' && checkRefExists(ref, index) === undefined).map(parseRef);
+}
+
+/** Returns what is wrong with one beat, or undefined when it is valid. */
+function checkBeat(beat: unknown, sceneRanges: readonly AyahRange[], index: QuranIndex): string | undefined {
+  const { kind, text, ref } = (typeof beat === 'object' && beat !== null ? beat : {}) as Record<string, unknown>;
+  if (kind === 'narration') return isNonEmptyString(text) ? undefined : 'narration beat has no text';
+  if (kind !== 'ayah') return `unknown kind ${JSON.stringify(kind)}, expected ${BEAT_KINDS.join(' or ')}`;
+  if (typeof ref !== 'string') return `ayah beat ref ${JSON.stringify(ref)} is not a string`;
+  const problem = checkRefExists(ref, index);
+  if (problem) return problem;
+  if (ref.includes('-')) return `ayah beat ref "${ref}" must be a single ayah, not a range`;
+  // With no valid scene refs there is nothing to compare against; the refs check reports that.
+  if (sceneRanges.length === 0) return undefined;
+  const { surah, from: ayah } = parseRef(ref);
+  const inScene = sceneRanges.some((range) => range.surah === surah && range.from <= ayah && ayah <= range.to);
+  return inScene ? undefined : `ayah beat ref "${ref}" is not inside the scene's refs`;
 }
 
 /**
@@ -54,7 +77,15 @@ export function validateChapter(file: string, chapter: unknown, index: QuranInde
       if (!isNonEmptyString(scene[field])) errors.push(`${where}: missing "${field}"`);
     }
     const beats = scene.beats;
-    if (!Array.isArray(beats) || beats.length === 0) errors.push(`${where}: has no beats`);
+    if (!Array.isArray(beats) || beats.length === 0) {
+      errors.push(`${where}: has no beats`);
+    } else {
+      const sceneRanges = validRanges(scene.refs, index);
+      beats.forEach((beat: unknown, b) => {
+        const problem = checkBeat(beat, sceneRanges, index);
+        if (problem) errors.push(`${where} beat #${b}: ${problem}`);
+      });
+    }
 
     const refs = scene.refs;
     if (!Array.isArray(refs) || refs.length === 0) {
