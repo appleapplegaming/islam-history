@@ -38,7 +38,6 @@
       "Bash(sort *)",
       "Bash(diff *)",
       "Bash(cmp *)",
-      "Bash(echo *)",
       "Bash(pwd)"
     ],
     "ask": [
